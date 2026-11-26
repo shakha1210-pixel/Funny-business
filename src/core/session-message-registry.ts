@@ -32,6 +32,8 @@ export class SessionMessageRegistry {
   }
 
   async list(sessionId: string): Promise<readonly SessionMessage[]> {
+    const pending = this.#tails.get(sessionId);
+    if (pending) await pending;
     if (!this.#sessions.get(sessionId)) throw new Error("Session not found: " + sessionId);
     return (await this.#store.load(sessionId)).map((message) => ({ ...message }));
   }
