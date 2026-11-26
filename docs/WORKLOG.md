@@ -795,3 +795,18 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification and limitations
 - The corrected workflow change is committed; push-triggered CI validation is pending.
 - The first manual run failed at `cargo generate-lockfile` before creating a branch or PR. The corrected bootstrap workflow must be rerun on `main`; then review and merge its PR before dispatching the benchmark workflow.
+
+
+## 2026-11-27 — Durable Session message vertical slice
+
+### Completed
+- Added a per-Session JSON message store using SHA-256-derived filenames, schema validation, exclusive temporary writes, fsync, atomic rename, and POSIX directory sync.
+- Added a SessionMessageRegistry with ordered per-Session append serialization, defensive reads, active-Session enforcement, duplicate-ID rejection, and a 64 KiB UTF-8 content bound.
+- Exposed `GET/POST /api/sessions/:id/messages` through the transport-neutral host and loopback HTTP adapter.
+- Connected the browser Agent panel to load and render persisted user messages and save submitted prompts. The UI explicitly states that model/agent execution is not connected.
+- Added store/registry, host, and HTTP API tests; documented the boundary and limitations.
+
+### Limitations
+- Only user messages are supported. There are no assistant responses, model calls, tool executions, streaming, cancellation, or durable run records.
+- Message snapshots are separate from Session/Workspace metadata and do not yet participate in the proposed SQLite transaction.
+- CI verification is pending; no local build or test execution was available in this workflow.
