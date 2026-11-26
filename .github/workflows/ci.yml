@@ -22,6 +22,8 @@ jobs:
       - run: pnpm install
       - run: pnpm run typecheck
       - run: pnpm run test
+      - name: Check SQLite benchmark analysis script
+        run: node --check spikes/sqlite-benchmark/summarize.mjs
       - name: Smoke-test Node SQLite benchmark modes
         shell: bash
         run: |
