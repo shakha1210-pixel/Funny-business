@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { hostname } from "node:os";
 import { mkdir, open, readFile, rmdir, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 interface HostLockOwner {
   readonly schemaVersion: 1;
@@ -70,7 +71,7 @@ export class JsonHostLock {
     const owner: HostLockOwner = {
       schemaVersion: 1,
       pid: process.pid,
-      hostname: (await import("node:os")).hostname(),
+      hostname: hostname(),
       startedAt: new Date().toISOString(),
       token: this.#token,
     };
