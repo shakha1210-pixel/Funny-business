@@ -51,7 +51,7 @@ jobs:
             echo "Benchmark repetition $run/${{ inputs.repeats }}"
             node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee "benchmark-results/node-sync-${run}.json"
             node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee "benchmark-results/node-worker-${run}.json"
-            (cd spikes/sqlite-benchmark/rust && cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL) | tee "benchmark-results/rust-${run}.json"
+            (cd spikes/sqlite-benchmark/rust && cargo run --release --locked -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL) | tee "benchmark-results/rust-${run}.json"
           done
       - uses: actions/upload-artifact@v4
         with:
