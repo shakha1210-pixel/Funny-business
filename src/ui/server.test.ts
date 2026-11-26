@@ -8,6 +8,8 @@ import { WorkspaceRegistry, type Workspace } from "../core/workspace-registry.js
 import { RegistryWorkspaceHost } from "../host/workspace-host.js";
 import { SessionRegistry, type Session, type SessionStore } from "../core/session-registry.js";
 import { JsonSessionCreationJournal } from "../core/session-creation-journal.js";
+import { JsonSessionMessageStore } from "../core/session-message-store.js";
+import { SessionMessageRegistry } from "../core/session-message-registry.js";
 
 test("serves only allowlisted local UI assets and health endpoint", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-ui-"));
@@ -82,7 +84,10 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     createId: () => "workspace-api-test",
   });
   await registry.initialize();
-  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json"))));
+  const messages = new SessionMessageRegistry({ store: new JsonSessionMessageStore(join(directory, "messages")), sessions });
+  const server = createUiServer(directory, new RegistryWorkspaceHost(
+    registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json")), messages,
+  ));
   try {
     const address = await listenUiServer(server, 0);
     const base = `http://${address.host}:${address.port}`;
@@ -123,6 +128,20 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     const sessionsResponse = await fetch(base + "/api/workspaces/workspace-api-test/sessions");
     const listedSessions = await sessionsResponse.json() as { sessions: Array<{ id: string }> };
     assert.deepEqual(listedSessions.sessions.map(({ id }) => id), [sessionBody.session.id]);
+
+    const messageResponse = await fetch(base + "/api/sessions/" + sessionBody.session.id + "/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Persist this task" }),
+    });
+    assert.equal(messageResponse.status, 201);
+    const messageBody = await messageResponse.json() as { message: { id: string; role: string; content: string } };
+    assert.equal(messageBody.message.role, "user");
+    assert.equal(messageBody.message.content, "Persist this task");
+
+    const messageListResponse = await fetch(base + "/api/sessions/" + sessionBody.session.id + "/messages");
+    const messageList = await messageListResponse.json() as { messages: Array<{ content: string }> };
+    assert.deepEqual(messageList.messages.map((message) => message.content), ["Persist this task"]);
 
     const renamedSession = await fetch(base + "/api/sessions/" + sessionBody.session.id, {
       method: "PATCH",
@@ -180,7 +199,10 @@ test("rejects cross-origin Workspace mutations", async () => {
     canonicalizeDirectory: async (path) => path,
   });
   await registry.initialize();
-  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json"))));
+  const messages = new SessionMessageRegistry({ store: new JsonSessionMessageStore(join(directory, "messages")), sessions });
+  const server = createUiServer(directory, new RegistryWorkspaceHost(
+    registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json")), messages,
+  ));
   try {
     const address = await listenUiServer(server, 0);
     const response = await fetch(`http://${address.host}:${address.port}/api/workspaces`, {
