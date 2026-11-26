@@ -9,6 +9,7 @@ This directory is the canonical home for Funny-business project documentation.
 - [Interface specification](INTERFACE-SPEC.md) — application frame, Workspace flows, UI state ownership, and first implementation milestones.
 - [Roadmap](ROADMAP.md) — phases, milestones, and pending work.
 - [Security baseline](SECURITY.md) — threat model and required controls.
+- [Performance](PERFORMANCE.md) — lightweight-runtime principles, diagnostics, and baseline procedure.
 - [Work log](WORKLOG.md) — dated research, implementation, verification, and blockers.
 
 ## Architecture decisions
