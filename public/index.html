@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101114">
+  <title>Funny Business — Workspace</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail">
+      <div class="brand-mark">F<span>B</span></div>
+      <button class="rail-button active" data-view="workspace" aria-label="Workspace" title="Workspace">▦</button>
+      <button class="rail-button" data-view="models" aria-label="Models" title="Models">◈</button>
+      <button class="rail-button" data-view="notebooks" aria-label="Notebooks" title="Notebooks">▤</button>
+      <button class="rail-button" data-view="extensions" aria-label="Extensions" title="Extensions">⌘</button>
+      <div class="rail-spacer"></div>
+      <button class="rail-button" data-view="settings" aria-label="Settings" title="Settings">⚙</button>
+      <div class="avatar">Y</div>
+    </aside>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div><div class="eyebrow">YOUR WORKSPACE</div><button class="workspace-switcher" id="workspace-switcher"><span class="workspace-dot"></span> Funny Business <span class="chevron">⌄</span></button></div>
+        <button class="icon-button" id="sidebar-toggle" aria-label="Collapse sidebar">⇤</button>
+      </div>
+      <div class="sidebar-actions">
+        <button class="action-button" id="new-chat"><span>＋</span> New task <kbd>⌘ K</kbd></button>
+        <button class="icon-button" id="search-button" aria-label="Search">⌕</button>
+      </div>
+      <div class="nav-label">WORKSPACE</div>
+      <div class="tree-row selected"><span class="tree-icon">▣</span><span>Funny-business</span><span class="tree-meta">main</span></div>
+      <div class="tree-row muted"><span class="tree-icon">⌄</span><span>src</span></div>
+      <div class="tree-row indent"><span class="file-icon ts">TS</span><span>index.ts</span></div>
+      <div class="tree-row indent"><span class="file-icon ts">TS</span><span>plugin-manager.ts</span></div>
+      <div class="tree-row indent"><span class="file-icon ts">TS</span><span>workspace-registry.ts</span></div>
+      <div class="tree-row muted"><span class="tree-icon">⌄</span><span>docs</span></div>
+      <div class="tree-row indent"><span class="file-icon md">MD</span><span>ARCHITECTURE.md</span></div>
+      <div class="tree-row indent"><span class="file-icon md">MD</span><span>ROADMAP.md</span></div>
+      <div class="tree-row muted"><span class="tree-icon">›</span><span>public</span></div>
+      <div class="nav-label recent-label">RECENT TASKS <button class="tiny-plus" aria-label="New task">＋</button></div>
+      <div class="task-row active-task"><span class="task-indicator running"></span><span>Workspace foundation</span><span class="task-time">now</span></div>
+      <div class="task-row"><span class="task-indicator done"></span><span>Reverse engineer UI</span><span class="task-time">1h</span></div>
+      <div class="task-row"><span class="task-indicator done"></span><span>Plugin lifecycle audit</span><span class="task-time">2h</span></div>
+      <div class="sidebar-bottom">
+        <div class="resource-line"><span>LOCAL RUNTIME</span><span class="online-dot"></span><span class="online-text">Ready</span></div>
+        <div class="resource-meter"><span style="width:34%"></span></div>
+        <div class="resource-foot"><span>Memory</span><span>5.4 / 16 GB</span></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="breadcrumbs"><span class="crumb-muted">Funny-business</span><span class="slash">/</span><span>Workspace overview</span></div>
+        <div class="topbar-right"><span class="branch-pill">⑂ main</span><span class="sync-state"><i></i> All changes saved</span><button class="icon-button" aria-label="Notifications">♧</button><button class="help-button">Help <span>↗</span></button></div>
+      </header>
+
+      <section class="content-scroll">
+        <div class="welcome-row">
+          <div><div class="eyebrow">THURSDAY, NOVEMBER 27</div><h1>Good evening<span class="accent">.</span></h1><p class="subtitle">Your workspace is ready. What are we building today?</p></div>
+          <div class="welcome-actions"><button class="secondary-button" id="open-project">Open project <span>↗</span></button><button class="primary-button" id="start-task">＋ Start a task</button></div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-top"><span>ACTIVE PROJECT</span><span class="stat-icon purple">▣</span></div><div class="stat-value">Funny-business</div><div class="stat-caption"><span class="status-dot"></span> Connected · local repository</div></article>
+          <article class="stat-card"><div class="stat-top"><span>GIT STATUS</span><span class="stat-icon green">⑂</span></div><div class="stat-value">main <span class="branch-count">↑ 0 ↓ 0</span></div><div class="stat-caption">Working tree clean</div></article>
+          <article class="stat-card"><div class="stat-top"><span>LOCAL MODELS</span><span class="stat-icon blue">◈</span></div><div class="stat-value">Not connected</div><div class="stat-caption">Connect Ollama or llama.cpp</div></article>
+          <article class="stat-card"><div class="stat-top"><span>BACKGROUND TASKS</span><span class="stat-icon amber">◷</span></div><div class="stat-value">1 <span class="branch-count">in progress</span></div><div class="stat-caption">Workspace foundation</div></article>
+        </div>
+
+        <div class="section-heading"><div><h2>Continue working</h2><p>Pick up where you left off</p></div><button class="text-button">View all <span>→</span></button></div>
+        <div class="continue-card">
+          <div class="continue-icon">✳</div><div class="continue-copy"><div class="card-kicker">ACTIVE TASK <span class="live-pill">RUNNING</span></div><h3>Build the Workspace foundation</h3><p>Domain registry, persistence, and the first interface shell.</p><div class="task-progress"><span></span></div></div><div class="continue-meta"><span>Updated just now</span><button class="round-arrow" id="resume-task" aria-label="Resume task">→</button></div>
+        </div>
+
+        <div class="section-heading projects-heading"><div><h2>Projects</h2><p>Your connected workspaces and repositories</p></div><button class="secondary-button small" id="add-project">＋ Add project</button></div>
+        <div class="project-grid">
+          <article class="project-card"><div class="project-card-top"><div class="project-symbol purple-bg">FB</div><span class="more-button">···</span></div><h3>Funny-business</h3><p>Universal local-first AI workspace</p><div class="project-card-foot"><span><i class="tiny-status"></i> Local</span><span>main · TypeScript</span></div></article>
+          <article class="project-card dashed-card" id="create-project"><div class="plus-circle">＋</div><h3>Add a workspace</h3><p>Open a folder or connect a repository</p></article>
+        </div>
+
+        <div class="section-heading activity-heading"><div><h2>Recent activity</h2><p>Latest changes across your workspace</p></div><button class="text-button">Activity log <span>→</span></button></div>
+        <div class="activity-list"><div class="activity-item"><span class="activity-icon green">✓</span><div><strong>Cross-platform CI passed</strong><p>Ubuntu, Windows, and macOS · all checks green</p></div><time>Just now</time></div><div class="activity-item"><span class="activity-icon purple">⌘</span><div><strong>Workspace registry added</strong><p>Canonical paths, Session membership, atomic store</p></div><time>12m ago</time></div><div class="activity-item"><span class="activity-icon blue">↗</span><div><strong>Plugin lifecycle hardened</strong><p>Concurrency control and retryable disposal</p></div><time>28m ago</time></div></div>
+      </section>
+      <footer class="statusbar"><div><span class="status-dot"></span> Runtime ready <span class="status-divider">|</span> Node.js 22</div><div><span>UTF-8</span><span>TypeScript</span><span>Local only</span></div></footer>
+    </main>
+
+    <aside class="agent-panel" id="agent-panel">
+      <div class="agent-header"><div class="agent-title"><span class="agent-spark">✳</span><div><strong>Agent</strong><small>Workspace assistant</small></div></div><button class="icon-button" id="agent-collapse" aria-label="Collapse agent panel">⇥</button></div>
+      <div class="agent-context"><span class="context-dot"></span><span>Funny-business</span><span class="context-sep">·</span><span>main</span><button aria-label="Change context">⌄</button></div>
+      <div class="agent-body"><div class="agent-empty-icon">✳</div><h3>Let's make something<br>remarkable.</h3><p>Your agent can explore this project, plan changes, write code, and run checks — with your approval.</p><div class="suggestion-list"><button class="suggestion" data-prompt="Review the current architecture and suggest improvements"><span>⌕</span> Review this project</button><button class="suggestion" data-prompt="Plan the next Workspace implementation milestone"><span>⌘</span> Plan the next milestone</button><button class="suggestion" data-prompt="Explain the current Workspace registry implementation"><span>◉</span> Explain this codebase</button></div></div>
+      <div class="agent-composer"><div class="composer-tools"><button title="Attach context">＋</button><span>Ask anything about this project</span><button title="Voice input">⌁</button></div><textarea id="agent-input" rows="3" placeholder="Tell the agent what to build..."></textarea><div class="composer-bottom"><div><button class="mode-pill">◈ Auto</button><button class="mode-pill">⌁ Tools</button></div><button class="send-button" id="send-prompt" aria-label="Send prompt">↑</button></div><div class="composer-note">Agent actions require permission when needed.</div></div>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
