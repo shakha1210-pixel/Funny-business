@@ -5,7 +5,7 @@ import type { SessionMessage } from "../core/session-message-store.js";
 import type { SessionMessageRegistry } from "../core/session-message-registry.js";
 import type { SessionChange, SessionRegistry } from "../core/session-registry.js";
 import type { Workspace, WorkspaceChange, WorkspaceRegistry, WorkspaceRegistrySnapshot } from "../core/workspace-registry.js";
-import type { FilesystemEntry, FilesystemGrant, FilesystemOperation, FilesystemReadResult, WorkspaceFilesystem } from "../core/workspace-filesystem.js";
+import type { FilesystemGrant, FilesystemListing, FilesystemOperation, FilesystemReadResult, WorkspaceFilesystem } from "../core/workspace-filesystem.js";
 
 export interface WorkspaceFeedMessage {
   readonly type: "snapshot" | "change";
@@ -45,7 +45,7 @@ export interface WorkspaceHost {
   listFilesystemGrants(workspaceId: string): readonly FilesystemGrant[];
   grantFilesystemAccess(workspaceId: string, operations?: readonly FilesystemOperation[]): Promise<FilesystemGrant>;
   revokeFilesystemAccess(grantId: string): Promise<boolean>;
-  listFiles(workspaceId: string, path?: string): Promise<readonly FilesystemEntry[]>;
+  listFiles(workspaceId: string, path?: string, cursor?: string, limit?: number): Promise<FilesystemListing>;
   readFile(workspaceId: string, path: string, expectedVersion?: string): Promise<FilesystemReadResult>;
   watch(options?: WorkspaceWatchOptions): AsyncIterable<WorkspaceFeedMessage>;
   watchSessions(workspaceId: string, options?: SessionWatchOptions): AsyncIterable<SessionFeedMessage>;
@@ -253,9 +253,9 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
     return this.#filesystem.revoke(grantId);
   }
 
-  listFiles(workspaceId: string, path?: string): Promise<readonly FilesystemEntry[]> {
+  listFiles(workspaceId: string, path?: string, cursor?: string, limit?: number): Promise<FilesystemListing> {
     if (!this.#filesystem) throw new Error("Filesystem service unavailable");
-    return this.#filesystem.list(workspaceId, path);
+    return this.#filesystem.list(workspaceId, path, { ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}) });
   }
 
   readFile(workspaceId: string, path: string, expectedVersion?: string): Promise<FilesystemReadResult> {
