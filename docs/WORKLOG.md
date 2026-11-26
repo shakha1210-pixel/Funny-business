@@ -437,3 +437,29 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Workspace initialization now revalidates persisted Session references against the initialized Session registry.
 - Startup rejects missing/invalid Session headers, duplicate Session IDs within a Workspace, cross-Workspace duplicate membership, and canonical working-directory mismatches.
 - Added regression tests proving invalid persisted relationships fail initialization before the Workspace registry becomes available.
+
+
+## 2026-11-27 — Durable Session creation recovery
+
+### Completed
+- Added a versioned, atomically replaced write-ahead journal for the single Session-create/Workspace-attach operation.
+- Assigned the Session ID before persistence so the recovery record can identify the exact operation even if the process stops immediately after writing the Session snapshot.
+- Serialized Session creation in the host and reconcile any previous pending operation before starting another one.
+- Added startup recovery after both registries initialize and before the local UI server begins accepting requests.
+- Recovery discards an unreferenced Session only when its original Workspace still exists; it preserves already attached Sessions and preserves Sessions whose Workspace was later unregistered.
+- Recovery fails closed when a Workspace references a missing Session, and failed compensation leaves the journal available for another recovery attempt.
+- Fixed the post-commit cleanup boundary: failure to remove the journal after a successful attachment never deletes a Session that the Workspace already references.
+- Added tests for journal persistence/validation and recovery of interrupted, committed, unregistered-Workspace, and inconsistent states.
+
+### Guarantees and limitations
+- The journal is a single-pending-operation write-ahead record, not a general event log.
+- The protocol protects the current single-host-process runtime. It does not provide cross-process locking or safe concurrent writers from multiple Funny Business processes.
+- Workspace and Session snapshots remain separate files; this protocol coordinates the current Session creation workflow only.
+- A Session preserved after its Workspace is unregistered is intentionally unassigned, not deleted.
+- No local build or test was run in this environment; GitHub Actions is the verification source for this change.
+
+### Next actions
+1. Run typecheck, tests, and build on Ubuntu, macOS, and Windows.
+2. Add a broader storage-coordination design covering cross-process locks, stale lock recovery, and future schema migrations before enabling multiple host processes.
+3. Add Session revisioned feeds and use them to keep the browser Session list synchronized without manual refresh.
+4. Continue with explicit filesystem access grants and safe file operations before implementing the file explorer.
