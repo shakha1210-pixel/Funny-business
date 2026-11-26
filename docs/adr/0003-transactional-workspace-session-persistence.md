@@ -119,3 +119,67 @@ Out of scope for the first local-first release. A future remote provider must pr
 - Which journal mode and synchronous setting meet the product's durability and performance goals?
 - Should the change log store full versioned event payloads or only durable sequence markers plus snapshot invalidation?
 - What retention, backup, export, and restore guarantees are required?
+
+
+## Normative transaction coordinator contract
+
+The database adapter is not the application transaction boundary. A host-owned coordinator must own the complete write lifecycle; domain services must not issue independent persistence writes and then attempt compensating deletes.
+
+### Operation identity and idempotency
+
+- Every externally initiated mutation receives a stable operation ID before its first durable write. A caller retrying after a timeout must reuse that ID.
+- Persist a unique operation receipt in the same transaction as the domain changes and change-log rows. The receipt records operation ID, operation kind, schema/version, and resulting durable sequence.
+- Replaying an already committed operation ID returns its recorded result and must not create a second Session, membership, or change-log entry.
+- Internal operations that cannot be retried by a caller may generate an ID at the host boundary, but the ID remains stable throughout recovery.
+
+### Required phases
+
+1. **Validate:** check domain invariants and normalize/canonicalize inputs before opening a write transaction where possible. Re-check database-dependent invariants inside the transaction.
+2. **Prepare:** construct immutable intended changes and allocate stable entity/operation IDs. Do not mutate in-memory registries.
+3. **Begin:** acquire the coordinator's serialized write slot and begin the database transaction.
+4. **Apply:** write all entity rows, membership constraints, operation receipt, and change-log rows in that transaction.
+5. **Commit:** the database commit is the only logical publication point.
+6. **Project:** after commit is confirmed, update in-memory projections from committed values (or reload the affected projection). A projection failure invalidates the in-memory host and requires reload; it must not attempt to undo committed data.
+7. **Notify:** publish the committed change set only after projections are coherent. Notifications carry durable sequence numbers and operation IDs; subscribers deduplicate by sequence/operation ID.
+8. **Return:** return the committed result. A notification transport failure cannot turn a committed mutation into a failed mutation.
+
+### Commit outcome semantics
+
+The coordinator must distinguish three outcomes; a generic rejected Promise is insufficient:
+
+- **Not committed:** the transaction is known to have rolled back or never started. No projection update and no event publication are allowed.
+- **Committed:** the commit is confirmed. Projection update and notification proceed.
+- **Unknown:** the adapter cannot determine whether commit took effect (for example, an I/O failure at the commit boundary). Do not compensate, blindly retry with a new operation ID, or publish a speculative event. Reopen/recover the database and query the operation receipt using the original operation ID. If the receipt exists, treat the operation as committed; if the database proves it absent after recovery, treat it as not committed. If the outcome still cannot be established, mark the host unavailable and fail closed until recovery succeeds.
+
+An error after a confirmed commit (projection refresh or notification) is not a transaction rollback. The host must retain the committed operation receipt and recover projections/notifications without replaying the domain mutation.
+
+### Session creation first vertical slice
+
+The coordinator transaction must insert Session metadata, insert its Workspace membership, append the corresponding durable change-log entries, and insert the operation receipt together. The Session ID and operation ID are allocated before the transaction. The current JSON journal remains the compatibility implementation until this vertical slice passes; it must not be mistaken for the final coordinator.
+
+### Failure-injection matrix
+
+The implementation and adapter contract tests must inject failure at each boundary:
+
+| Failure point | Required durable result | In-memory/event behavior |
+|---|---|---|
+| Validation / ID allocation | No writes | No projection change; no event |
+| Begin / first write | No committed rows | No projection change; no event |
+| Mid-transaction statement | Full rollback | No projection change; no event |
+| Constraint violation | Full rollback | No projection change; no event |
+| Commit confirmed | Complete operation + receipt + log | Project then notify once per sequence |
+| Commit response lost / I/O error | Resolve by recovery + operation receipt | No speculative event; host unavailable while unresolved |
+| Projection refresh after commit | Operation remains committed | Rebuild projection; notify only after coherent |
+| Notification listener throws | Operation remains committed | Isolate listener; other listeners continue |
+| Process crash after commit, before notify | Operation and log survive | Replay from durable sequence after restart |
+| Caller retries same operation ID | No duplicate mutation | Return original committed result |
+
+### Coordinator invariants
+
+- One serialized writer owns Workspace/Session mutations in the current single-host runtime.
+- All domain changes and their change-log/receipt records commit atomically.
+- No event is published for an uncommitted or unresolved operation.
+- Every committed mutation has one durable sequence; in-process delivery may be repeated after reconnect, so consumers are idempotent rather than relying on exactly-once transport.
+- A projection is a cache of committed storage, never a second source of truth.
+- The coordinator owns transaction boundaries; repositories expose transaction-scoped operations and cannot commit independently.
+- Shutdown waits for or safely aborts pre-commit work; it does not report an uncommitted operation as successful.
