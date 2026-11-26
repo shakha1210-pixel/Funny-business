@@ -9,6 +9,7 @@ import { JsonSessionStore } from "./core/session-store-json.js";
 import { JsonSessionCreationJournal } from "./core/session-creation-journal.js";
 import { JsonSessionMessageStore } from "./core/session-message-store.js";
 import { SessionMessageRegistry } from "./core/session-message-registry.js";
+import { JsonFilesystemGrantStore, WorkspaceFilesystem } from "./core/workspace-filesystem.js";
 import { createUiServer, listenUiServer } from "./ui/server.js";
 import { RegistryWorkspaceHost } from "./host/workspace-host.js";
 
@@ -37,11 +38,17 @@ async function main(): Promise<void> {
       store: new JsonSessionMessageStore(join(home, "messages")),
       sessions,
     });
+    const filesystem = new WorkspaceFilesystem({
+      workspaces,
+      grants: new JsonFilesystemGrantStore(join(home, "filesystem-grants.json")),
+    });
+    await filesystem.initialize();
     const workspaceHost = new RegistryWorkspaceHost(
       workspaces,
       sessions,
       new JsonSessionCreationJournal(join(home, "session-creation.pending.json")),
       messages,
+      filesystem,
     );
     await workspaceHost.recoverPendingSessionCreation();
     server = createUiServer(undefined, workspaceHost);
