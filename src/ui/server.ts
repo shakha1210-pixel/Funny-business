@@ -53,6 +53,18 @@ async function handleWorkspaceApi(
     return;
   }
   const method = request.method ?? "GET";
+  if (method === "POST" || method === "PATCH" || method === "DELETE") {
+    const origin = request.headers.origin;
+    const expectedOrigin = request.headers.host ? "http://" + request.headers.host : "";
+    if (origin && origin !== expectedOrigin) {
+      sendJson(response, 403, { error: "Cross-origin Workspace mutations are not allowed" });
+      return;
+    }
+    if (method !== "DELETE" && !request.headers["content-type"]?.toLowerCase().startsWith("application/json")) {
+      sendJson(response, 415, { error: "Workspace mutations require application/json" });
+      return;
+    }
+  }
   try {
     if (pathname === "/api/workspaces" && method === "GET") {
       sendJson(response, 200, { workspaces: registry.list() });
