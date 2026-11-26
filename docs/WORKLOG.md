@@ -158,3 +158,15 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Define Funny Business Workspace, filesystem access grant, and execution sandbox boundaries.
 3. Inspect current Funny Business starter code before adding modules; build and test in a real checkout/CI.
 4. Implement the minimal Workspace domain and tests first; add filesystem provider only after its contract is settled.
+
+
+## 2026-11-27 — ADR-0001 proposed
+
+### Completed
+- Consolidated Workspace domain, filesystem contract/provider, permission, execution sandbox, and UI/transport boundaries into `docs/adr/0001-workspace-domain-boundaries.md`.
+- Added ADR index entry and updated Phase 0 research status.
+- ADR status is **Proposed**; it records the current architecture direction and open decisions, not a claim that all implementation details are settled.
+
+### Next
+- Validate existing TypeScript core in a real checkout/CI before adding the Workspace domain.
+- Review and accept/revise ADR-0001, then implement the smallest Workspace registry with tests.
