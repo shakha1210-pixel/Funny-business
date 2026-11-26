@@ -783,3 +783,15 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification and limitations
 - Workflow change is committed; its push-triggered CI validation is pending.
 - The benchmark workflow itself remains manual and requires a reviewed/merged Cargo.lock PR before Rust's `--locked` build can execute.
+
+
+## 2026-11-27 — Pin Rust toolchain with benchmark lockfile
+
+### Completed
+- Updated the manual lockfile bootstrap workflow to record the exact stable Rust compiler version as `spikes/sqlite-benchmark/rust/rust-toolchain.toml` before generating the lockfile.
+- The review PR now contains both `Cargo.lock` and the exact toolchain pin; the release build is checked using that pinned toolchain and `--locked`.
+- Updated the benchmark research note and prerequisites accordingly.
+
+### Verification and limitations
+- Workflow changes are committed; push-triggered CI validation is pending.
+- The bootstrap workflow itself remains manual and has not generated a lockfile yet. The user must run it on `main`, review the PR, and merge it before dispatching the benchmark workflow.
