@@ -128,15 +128,26 @@ function createSessionAtomically(db, input) {
 async function withDatabase(t) {
   const directory = await mkdtemp(join(tmpdir(), 'funny-business-sqlite-spike-'));
   const filename = join(directory, 'spike.sqlite');
-  t.after(async () => rm(directory, { recursive: true, force: true }));
-  return { filename, db: openDatabase(filename) };
+  const databases = [];
+  const db = openDatabase(filename);
+  databases.push(db);
+  t.after(async () => {
+    for (const database of databases) {
+      try { database.close(); } catch {}
+    }
+    await rm(directory, { recursive: true, force: true });
+  });
+  return {
+    filename,
+    db,
+    registerDatabase(database) {
+      databases.push(database);
+    },
+  };
 }
 
 test('SQLite vertical slice commits atomically and resumes its durable sequence after reopen', async (t) => {
-  const { filename, db } = await withDatabase(t);
-  t.after(() => {
-    try { db.close(); } catch {}
-  });
+  const { filename, db, registerDatabase } = await withDatabase(t);
 
   db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run(
     'workspace-1',
@@ -165,9 +176,7 @@ test('SQLite vertical slice commits atomically and resumes its durable sequence 
 
   db.close();
   const reopened = openDatabase(filename);
-  t.after(() => {
-    try { reopened.close(); } catch {}
-  });
+  registerDatabase(reopened);
 
   const receipt = reopened.prepare(
     'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
@@ -191,9 +200,6 @@ test('SQLite vertical slice commits atomically and resumes its durable sequence 
 
 test('foreign-key failure rolls back every write in the Session transaction', async (t) => {
   const { db } = await withDatabase(t);
-  t.after(() => {
-    try { db.close(); } catch {}
-  });
 
   assert.throws(() => createSessionAtomically(db, {
     operationId: 'op-invalid-workspace',
@@ -211,9 +217,6 @@ test('foreign-key failure rolls back every write in the Session transaction', as
 
 test('a Session can belong to only one Workspace', async (t) => {
   const { db } = await withDatabase(t);
-  t.after(() => {
-    try { db.close(); } catch {}
-  });
 
   db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w1', '/p/one');
   db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w2', '/p/two');
