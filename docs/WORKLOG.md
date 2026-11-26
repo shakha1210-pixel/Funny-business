@@ -170,3 +170,24 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Next
 - Validate existing TypeScript core in a real checkout/CI before adding the Workspace domain.
 - Review and accept/revise ADR-0001, then implement the smallest Workspace registry with tests.
+
+
+## 2026-11-27 — First cross-platform CI validation
+
+### Completed
+- Audited the current TypeScript core: plugin contracts, service registry, PluginManager, tests, package manifest, compiler settings, and CI workflow.
+- Found CI setup failures before dependency installation: pnpm version was specified in both package.json and the setup action, then setup-node cache failed because no pnpm lockfile existed.
+- Removed the duplicate pnpm version declaration from the workflow and temporarily disabled pnpm caching until a lockfile is committed.
+- Verified GitHub Actions run [45887128892](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45887128892): install, typecheck, tests, and build all succeeded on Ubuntu, macOS, and Windows.
+
+### Core audit notes
+- The current PluginManager has a small, understandable dependency-aware lifecycle and initial rollback tests.
+- Follow-up hardening is still needed for concurrent mount/unmount/shutdown calls, idempotent disposal, and preserving failed-to-dispose plugins as visible degraded state rather than silently dropping them.
+- A committed pnpm lockfile is still needed for reproducible dependency resolution; caching remains disabled until then.
+- CI success validates the current starter core only; it does not validate Workspace or UI functionality, which have not yet been implemented.
+
+### Next actions
+1. Harden PluginManager concurrency and disposal semantics with regression tests.
+2. Commit a pnpm lockfile and restore dependency caching.
+3. Translate the researched Workspace and interface behavior into Funny Business domain/UI specifications.
+4. Implement Workspace domain and persistence before wiring the UI projection.
