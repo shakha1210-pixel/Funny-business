@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -553,7 +553,7 @@ test('two independent writer processes serialize without losing committed rows',
 
 test('WAL checkpoint reports a pinned reader and completes after the reader releases its snapshot', async (t) => {
   const { filename, db, registerDatabase } = await withDatabase(t);
-  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 100');
   db.exec('CREATE TABLE checkpoint_probe (id TEXT PRIMARY KEY)');
   db.prepare('INSERT INTO checkpoint_probe(id) VALUES (?)').run('before-reader');
 
@@ -577,7 +577,7 @@ test('WAL checkpoint reports a pinned reader and completes after the reader rele
 });
 
 test('VACUUM INTO backup can be restored as a consistent database with committed WAL data', async (t) => {
-  const { filename, db } = await withDatabase(t);
+  const { filename, db, registerDatabase } = await withDatabase(t);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('CREATE TABLE backup_probe (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
   db.prepare('INSERT INTO backup_probe(id, value) VALUES (?, ?)').run('item-1', 'first');
@@ -591,9 +591,7 @@ test('VACUUM INTO backup can be restored as a consistent database with committed
 
   await copyFile(backupFilename, restoredFilename);
   const restored = openDatabase(restoredFilename);
-  t.after(() => {
-    try { restored.close(); } catch {}
-  });
+  registerDatabase(restored);
 
   const rows = restored.prepare(
     'SELECT id, value FROM backup_probe ORDER BY id',
