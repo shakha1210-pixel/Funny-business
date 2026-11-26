@@ -270,3 +270,22 @@ Update this file with meaningful research, implementation, tests, and blockers.
 3. Add reconnect-safe Workspace state feed and renderer-side selected Workspace switching.
 4. Implement filesystem provider and safe file browser only after explicit access grants are designed.
 5. Add a pnpm lockfile and re-enable dependency caching.
+
+
+## 2026-11-27 — Desktop-first direction
+
+### Completed
+- Confirmed product direction: installed desktop application is the primary experience; browser UI remains a development and test mode.
+- Added ADR-0002 proposing Tauri 2 as the preferred desktop shell because it uses the platform WebView and provides a native host, while requiring a measured vertical slice before acceptance.
+- Kept the current TypeScript/Node core independent of the shell; the ADR requires a measured decision between a managed TypeScript sidecar and a narrower Rust-host split.
+- Added lightweight-performance requirements: lazy activation, cancellable background work, and measurements for startup, idle memory/CPU, Workspace load, process count, and package size.
+
+### Not done
+- No Tauri dependency, Rust host, native directory picker, or desktop package has been implemented yet.
+- No runtime or package-size benchmark has been run; Tauri remains a proposed direction, not an accepted implementation decision.
+
+### Next actions
+1. Build a minimal Tauri 2 vertical slice that loads the existing UI.
+2. Expose a native folder picker through a narrow typed capability.
+3. Run the same Workspace contract through desktop and browser-dev adapters.
+4. Compare runtime split options and capture cross-platform startup, idle resource, and package-size baselines.
