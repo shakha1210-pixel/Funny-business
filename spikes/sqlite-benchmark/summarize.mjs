@@ -70,7 +70,7 @@ const rows = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 console.log(`SQLite benchmark summary — ${files.length} JSON files`);
 console.log(`Expected repetitions per adapter/platform: ${expectedRepeats}`);
 console.log('');
-console.log('| OS | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Responsiveness probe |');
+console.log('| OS | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Main/UI thread probe |');
 console.log('|---|---|---:|---:|---:|---:|---:|---|');
 
 for (const [key, samples] of rows) {
@@ -80,8 +80,8 @@ for (const [key, samples] of rows) {
   const p99 = samples.map((sample) => sample.transactionMs.p99);
   const open = samples.map((sample) => sample.openMs).filter(Number.isFinite);
   const probes = samples.flatMap((sample) => {
-    if (Number.isFinite(sample.synchronousEventLoopStallMs)) return [sample.synchronousEventLoopStallMs];
-    if (Number.isFinite(sample.mainThread?.maxHeartbeatDelayMs)) return [sample.mainThread.maxHeartbeatDelayMs];
+    if (mode === 'main-thread-sync' && Number.isFinite(sample.synchronousEventLoopStallMs)) return [sample.synchronousEventLoopStallMs];
+    if (mode === 'worker-thread' && Number.isFinite(sample.mainThread?.maxHeartbeatDelayMs)) return [sample.mainThread.maxHeartbeatDelayMs];
     return [];
   });
   const throughputRange = range(throughput);
