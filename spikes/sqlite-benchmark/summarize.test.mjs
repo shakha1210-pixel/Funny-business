@@ -25,7 +25,11 @@ try {
   await writeFile(join(linux, 'node-1.json'), JSON.stringify(sample('linux', 'node:sqlite DatabaseSync', 'main-thread-sync', 100, 2, 3)));
   await writeFile(join(linux, 'node-2.json'), JSON.stringify(sample('linux', 'node:sqlite DatabaseSync', 'main-thread-sync', 200, 4, 6)));
   await writeFile(join(linux, 'rust-1.json'), JSON.stringify(sample('linux', 'rusqlite', undefined, 150, 3, 5)));
-  await writeFile(join(windows, 'node-1.json'), JSON.stringify(sample('win32', 'node:sqlite DatabaseSync', 'worker-thread', 300, 1, 2)));
+  await writeFile(join(windows, 'node-1.json'), JSON.stringify({
+    ...sample('win32', 'node:sqlite DatabaseSync', 'worker-thread', 300, 1, 2),
+    synchronousEventLoopStallMs: 999,
+    mainThread: { heartbeatTicks: 10, maxHeartbeatDelayMs: 7.25 },
+  }));
 
   const complete = spawnSync(process.execPath, [script.pathname, directory, '--expected-repeats=1'], { encoding: 'utf8' });
   assert.equal(complete.status, 0, complete.stderr);
@@ -33,6 +37,8 @@ try {
   assert.match(complete.stdout, /windows \| node:sqlite DatabaseSync \/ worker-thread \| 1 \|/);
   assert.match(complete.stdout, /linux \| rusqlite \/ rust-native \| 1 \|/);
   assert.match(complete.stdout, /150\.0 \(150\.0–150\.0\)/);
+  assert.match(complete.stdout, /7\.25 ms median \(n=1\)/);
+  assert.doesNotMatch(complete.stdout, /999\.00 ms/);
 
   const incomplete = spawnSync(process.execPath, [script.pathname, directory, '--expected-repeats=5'], { encoding: 'utf8' });
   assert.equal(incomplete.status, 2);
