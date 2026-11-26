@@ -640,3 +640,19 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - This is a contract smoke test, not a performance benchmark or production persistence implementation. Commit-ambiguity/crash injection, concurrent-process behavior, backup/restore, Node event-loop delay, packaging, and Rust/Tauri comparison remain open.
 - No SQLite dependency was added; the pnpm lockfile remains a separate reproducibility blocker for third-party native bindings.
 
+## 2026-11-27 — SQLite failure-injection and crash-recovery spike
+
+### Implemented
+- Extended the isolated Node built-in SQLite spike with injected exceptions after Session insert, Workspace membership insert, change-log insert, and operation receipt insert; each pre-commit failure must leave all transaction rows absent.
+- Added child-process termination before COMMIT and verified reopening the database yields no partial Session, membership, receipt, or change-log rows.
+- Added child-process termination immediately after COMMIT and before notification; restart recovers the durable receipt/change-log, and replaying the same operation ID does not duplicate the mutation.
+- Simulated a lost COMMIT acknowledgement after the database had committed; the connection is closed, a fresh connection is opened, and the operation receipt resolves the committed result.
+- Simulated a pre-COMMIT failure; after reopening, the absent receipt confirms the operation was not committed and a retry with the same ID is safe.
+- Rejects reusing an operation ID with a different Session payload.
+- Updated the SQLite vertical-slice research and ADR-0003 acceptance criteria.
+
+### Scope and verification
+- These are process-crash and adapter-boundary simulations, not power-loss or real storage I/O fault tests.
+- The spike still does not implement the production transaction coordinator, in-memory projection rebuild, event notification, multi-process concurrency, WAL backup/restore, or a Rust/Tauri adapter.
+- The new test commit must pass the full Ubuntu, Windows, and macOS CI matrix before being treated as verified.
+
