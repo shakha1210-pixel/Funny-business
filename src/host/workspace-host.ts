@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Session } from "../core/session-registry.js";
 import type { SessionCreationJournal } from "../core/session-creation-journal.js";
+import type { SessionMessage } from "../core/session-message-store.js";
+import type { SessionMessageRegistry } from "../core/session-message-registry.js";
 import type { SessionChange, SessionRegistry } from "../core/session-registry.js";
 import type { Workspace, WorkspaceChange, WorkspaceRegistry, WorkspaceRegistrySnapshot } from "../core/workspace-registry.js";
 
@@ -37,6 +39,8 @@ export interface WorkspaceHost {
   createSession(workspaceId: string, title?: string): Promise<Session>;
   renameSession(sessionId: string, title: string): Promise<Session>;
   archiveSession(sessionId: string): Promise<Session>;
+  listMessages(sessionId: string): Promise<readonly SessionMessage[]>;
+  appendUserMessage(sessionId: string, content: string): Promise<SessionMessage>;
   watch(options?: WorkspaceWatchOptions): AsyncIterable<WorkspaceFeedMessage>;
   watchSessions(workspaceId: string, options?: SessionWatchOptions): AsyncIterable<SessionFeedMessage>;
 }
@@ -50,12 +54,19 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
   readonly #registry: WorkspaceRegistry;
   readonly #sessions: SessionRegistry;
   readonly #journal: SessionCreationJournal;
+  readonly #messages: SessionMessageRegistry;
   #creationTail: Promise<void> = Promise.resolve();
 
-  constructor(registry: WorkspaceRegistry, sessions: SessionRegistry, journal: SessionCreationJournal) {
+  constructor(
+    registry: WorkspaceRegistry,
+    sessions: SessionRegistry,
+    journal: SessionCreationJournal,
+    messages: SessionMessageRegistry,
+  ) {
     this.#registry = registry;
     this.#sessions = sessions;
     this.#journal = journal;
+    this.#messages = messages;
   }
 
   list(): readonly Workspace[] {
@@ -208,6 +219,14 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
 
   archiveSession(sessionId: string): Promise<Session> {
     return this.#sessions.archive(sessionId);
+  }
+
+  listMessages(sessionId: string): Promise<readonly SessionMessage[]> {
+    return this.#messages.list(sessionId);
+  }
+
+  appendUserMessage(sessionId: string, content: string): Promise<SessionMessage> {
+    return this.#messages.appendUserMessage(sessionId, content);
   }
 
   async *watch(options: WorkspaceWatchOptions = {}): AsyncGenerator<WorkspaceFeedMessage> {
