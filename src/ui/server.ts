@@ -67,7 +67,7 @@ async function handleWorkspaceApi(
     }
   }
   try {
-    const workspaceSessions = pathname.match(/^\\/api\\/workspaces\\/([^/]+)\\/sessions$/);
+    const workspaceSessions = pathname.match(/^\/api\/workspaces\/([^/]+)\/sessions$/);
     if (workspaceSessions && method === "GET") {
       const workspaceId = decodeURIComponent(workspaceSessions[1]!);
       sendJson(response, 200, { sessions: registry.listSessions(workspaceId) });
@@ -84,7 +84,7 @@ async function handleWorkspaceApi(
       sendJson(response, 201, { session });
       return;
     }
-    const sessionMatch = pathname.match(/^\\/api\\/sessions\\/([^/]+)$/);
+    const sessionMatch = pathname.match(/^\/api\/sessions\/([^/]+)$/);
     if (sessionMatch && method === "PATCH") {
       const sessionId = decodeURIComponent(sessionMatch[1]!);
       const body = await readJson(request);
@@ -95,7 +95,7 @@ async function handleWorkspaceApi(
       sendJson(response, 200, { session: await registry.renameSession(sessionId, body.title) });
       return;
     }
-    const archiveMatch = pathname.match(/^\\/api\\/sessions\\/([^/]+)\\/archive$/);
+    const archiveMatch = pathname.match(/^\/api\/sessions\/([^/]+)\/archive$/);
     if (archiveMatch && method === "POST") {
       const sessionId = decodeURIComponent(archiveMatch[1]!);
       sendJson(response, 200, { session: await registry.archiveSession(sessionId) });
