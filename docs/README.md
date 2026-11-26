@@ -21,7 +21,7 @@ This directory is the canonical home for Funny-business project documentation.
 
 - [DeepSeek Harness study](research/DEEPSEEK-HARNESS.md) — upstream architecture and plugin/runtime research.
 - [Workspace reverse engineering](research/WORKSPACE-REVERSE-ENGINEERING.md) — first-pass Workspace, persistence, filesystem, and UI findings.
-- [Storage coordination study](research/STORAGE-COORDINATION.md) — single-host locking, SQLite transactions, multi-process risks, and failure-test plan.
+- [Storage coordination study](research/STORAGE-COORDINATION.md) — single-host locking, SQLite transactions, multi-process risks, and failure-test plan.\n- [Dependency reproducibility](research/DEPENDENCY-REPRODUCIBILITY.md) — pnpm lockfile bootstrap and frozen-install follow-up.
 
 ## Documentation rules
 
