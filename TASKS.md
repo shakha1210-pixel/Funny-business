@@ -4,16 +4,16 @@ This is the single living task ledger. Keep it adjacent to the root README. Upda
 
 ## Current checkpoint
 
-**Active milestone:** Agent Runtime contract and durable run lifecycle.
+**Active milestone:** Cross-platform SQLite benchmark and persistence decision.
 
 The Workspace, Session, browser host, read-only filesystem, and user-message capture vertical slices exist. A real model provider, assistant messages, tool execution, and resumable agent runs do not exist yet.
 
 ## Active chain
 
 1. [x] Consolidate project documentation into this task ledger, root README, and root architecture handbook.
-2. [ ] Finish dependency reproducibility: dispatch pnpm lockfile bootstrap; review and merge its PR; then enable frozen lockfile installs and CI caching.
-3. [ ] Dispatch Rust lockfile/toolchain bootstrap; review and merge Cargo.lock + exact toolchain pin.
-4. [ ] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary artifacts; do not choose a binding from unmeasured assumptions.
+2. [x] Generate and merge pnpm lockfile (PR #1); next enable frozen lockfile installs and CI caching.
+3. [x] Generate and merge Cargo.lock + exact Rust toolchain pin (PR #2).
+4. [ ] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary.md artifacts; do not choose a binding from unmeasured assumptions.
 5. [ ] Select persistence host/binding only after benchmark, package, license, crash-recovery, and cross-platform evidence.
 6. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
@@ -54,13 +54,15 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 - [x] Injected rollback failures, pre/post-COMMIT child-process crash tests, lost-COMMIT-ack receipt recovery.
 - [x] SQLite multi-process contention, WAL reader/writer, checkpoint and backup/restore smoke tests.
 - [x] Node sync/worker and Rust benchmark harnesses plus dependency-free summarizer and CI tests.
-- [ ] pnpm lockfile bootstrap workflow has not been dispatched; no pnpm-lock.yaml yet.
-- [ ] Cargo lock/toolchain bootstrap workflow has not been dispatched; no Cargo.lock or exact Rust toolchain pin yet.
-- [ ] Manual SQLite benchmark workflow has not been dispatched; no benchmark artifacts or binding decision.
+- [x] pnpm-lock.yaml generated with pnpm 10.0.0 and merged through PR #1.
+- [x] Rust Cargo.lock and exact rust-toolchain.toml (1.100.0) merged through PR #2.
+- [ ] Manual SQLite benchmark workflow is configured for Ubuntu/Windows/macOS; run and inspect artifacts before any binding decision.
 
 ## Verification ledger
 
 - [x] GitHub Actions run 45911318923 — Agent Runtime contract + lifecycle tests, typecheck, full tests, benchmark smoke checks, and build; Ubuntu/Windows/macOS success.
+- [x] GitHub Actions run 45912851778 — post-pnpm-lockfile CI, success.
+- [x] GitHub Actions run 45913548321 — post-Cargo.lock SQLite Rust spike check on main, success.
 - [x] GitHub Actions run 45911210929 — Agent Runtime contract documentation and task-chain update, Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45911208613 — Agent Runtime contract handbook update, Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45908460276 — documentation checkpoint, Ubuntu/Windows/macOS success.
@@ -80,7 +82,7 @@ Historical failed runs were corrected by later commits; do not count superseded 
 - No production Agent Runtime, assistant messages, tool messages, model provider, or resumable run execution.
 - User messages and Session metadata are separate JSON stores; cross-store atomicity is not guaranteed.
 - SQLite remains a spike/evaluation candidate, not production persistence.
-- No lockfiles merged; CI is not yet using frozen/locked dependency resolution.
+- pnpm-lock.yaml and Cargo.lock are merged, but the main Node CI install has not yet been switched to frozen-lockfile mode.
 - No real OS sandbox, process execution broker, permission approval UI, or credential vault.
 - Filesystem adapter is read-only and retains intermediate-component TOCTOU risk.
 - Browser UI is a prototype; native desktop shell and end-to-end browser automation are not complete.
