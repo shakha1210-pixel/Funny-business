@@ -105,7 +105,7 @@ test("Workspace watch replaces an overflowing queue with an authoritative snapsh
   const replacement = await iterator.next(undefined);
   assert.equal(replacement.value?.type, "snapshot");
   assert.equal(replacement.value?.revision, 2);
-  assert.deepEqual(replacement.value?.workspaces?.map((workspace) => workspace.path), ["/one", "/two"]);
+  assert.deepEqual(replacement.value?.workspaces?.map((workspace: Workspace) => workspace.path), ["/one", "/two"]);
   await iterator.return?.(undefined);
 });
 
