@@ -102,6 +102,10 @@ test("filesystem paginates with a directory-version-bound cursor", async () => {
     const first = await state.filesystem.list(state.workspace.id, "", { limit: 2 });
     assert.equal(first.entries.length, 2);
     assert.ok(first.nextCursor);
+    await assert.rejects(
+      state.filesystem.list(state.workspace.id, "nested", { limit: 2, cursor: first.nextCursor }),
+      /different directory/,
+    );
     const second = await state.filesystem.list(state.workspace.id, "", { limit: 2, cursor: first.nextCursor });
     assert.equal(second.entries.length, 2);
     assert.ok(second.nextCursor);
