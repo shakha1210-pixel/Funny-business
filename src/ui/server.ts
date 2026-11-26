@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import type { WorkspaceRegistry } from "../core/workspace-registry.js";
+import type { WorkspaceHost } from "../host/workspace-host.js";
 
 const DEFAULT_PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../public");
 const RUNTIME_STARTED_AT = performance.now();
@@ -47,7 +47,7 @@ async function handleWorkspaceApi(
   request: IncomingMessage,
   response: ServerResponse,
   pathname: string,
-  registry?: WorkspaceRegistry,
+  registry?: WorkspaceHost,
 ): Promise<void> {
   if (!registry) {
     sendJson(response, 503, { error: "Workspace service unavailable" });
@@ -122,7 +122,7 @@ async function handleWorkspaceApi(
 
 export function createUiServer(
   publicDir = DEFAULT_PUBLIC_DIR,
-  workspaces?: WorkspaceRegistry,
+  workspaces?: WorkspaceHost,
 ): Server {
   return createServer(async (request, response) => {
     const method = request.method ?? "GET";
