@@ -279,7 +279,7 @@ export class WorkspaceFilesystem {
   async list(
     workspaceId: string,
     relativePath = "",
-    options: { readonly cursor?: string; readonly limit?: number } = {},
+    options: { readonly cursor?: string | undefined; readonly limit?: number | undefined } = {},
   ): Promise<FilesystemListing> {
     const root = await this.#authorized(workspaceId, "list");
     const segments = resolveRelativePath(relativePath);
