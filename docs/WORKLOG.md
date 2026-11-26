@@ -398,7 +398,7 @@ Update this file with meaningful research, implementation, tests, and blockers.
 
 ### Verification
 - Workspace State Feed CI passed on Ubuntu, macOS, and Windows in run [45890723915](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45890723915).
-- Session milestone CI is triggered by the latest commits and must be checked before this milestone is marked verified.
+- Session domain, Workspace membership validation, host/API, and UI changes passed GitHub Actions on Ubuntu, macOS, and Windows in run [45892156857](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45892156857).
 - No local checkout/build was run in this environment.
 
 ### Next actions
@@ -428,7 +428,7 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Native folder picker and filesystem browsing are still pending.
 
 ### Verification
-- UI changes are included in the GitHub Actions cross-platform typecheck/test/build pipeline; latest run is pending.
+- UI changes passed GitHub Actions typecheck, tests, and build on Ubuntu, macOS, and Windows in run [45892041841](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45892041841).
 - No local browser or desktop visual test was run in this environment.
 
 
