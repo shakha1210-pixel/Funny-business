@@ -56,10 +56,10 @@ test("filesystem lists entries without following symbolic links", async () => {
     await symlink(join(state.directory, "outside.txt"), join(state.root, "outside-link.txt"));
     await writeFile(join(state.directory, "outside.txt"), "secret");
     await state.filesystem.grant(state.workspace.id);
-    const entries = await state.filesystem.list(state.workspace.id);
-    assert.equal(entries.find((entry) => entry.name === "hello.txt")?.kind, "file");
-    assert.equal(entries.find((entry) => entry.name === "nested")?.kind, "directory");
-    assert.equal(entries.find((entry) => entry.name === "outside-link.txt")?.kind, "symlink");
+    const listing = await state.filesystem.list(state.workspace.id);
+    assert.equal(listing.entries.find((entry) => entry.name === "hello.txt")?.kind, "file");
+    assert.equal(listing.entries.find((entry) => entry.name === "nested")?.kind, "directory");
+    assert.equal(listing.entries.find((entry) => entry.name === "outside-link.txt")?.kind, "symlink");
     await assert.rejects(state.filesystem.read(state.workspace.id, "outside-link.txt"), /Symbolic links/);
     await assert.rejects(state.filesystem.list(state.workspace.id, "outside-link.txt"), /Symbolic links/);
   } finally { await rm(state.directory, { recursive: true, force: true }); }
@@ -84,12 +84,37 @@ test("filesystem enforces bounded reads and stale version tokens", async () => {
     await state.filesystem.grant(state.workspace.id);
     await assert.rejects(state.filesystem.read(state.workspace.id, "large.txt"), /read limit/);
     const listing = await state.filesystem.list(state.workspace.id);
-    const version = listing.find((entry) => entry.name === "hello.txt")!.version!;
+    const version = listing.entries.find((entry) => entry.name === "hello.txt")!.version!;
     await writeFile(join(state.root, "hello.txt"), "changed");
     await assert.rejects(state.filesystem.read(state.workspace.id, "hello.txt", version), /version conflict/);
   } finally { await rm(state.directory, { recursive: true, force: true }); }
 });
 
+
+
+test("filesystem paginates with a directory-version-bound cursor", async () => {
+  const state = await setup();
+  try {
+    await writeFile(join(state.root, "a.txt"), "a");
+    await writeFile(join(state.root, "b.txt"), "b");
+    await writeFile(join(state.root, "c.txt"), "c");
+    await state.filesystem.grant(state.workspace.id);
+    const first = await state.filesystem.list(state.workspace.id, "", { limit: 2 });
+    assert.equal(first.entries.length, 2);
+    assert.ok(first.nextCursor);
+    const second = await state.filesystem.list(state.workspace.id, "", { limit: 2, cursor: first.nextCursor });
+    assert.equal(second.entries.length, 2);
+    assert.equal(second.nextCursor, undefined);
+    assert.notEqual(first.entries[0]?.name, second.entries[0]?.name);
+
+    const stale = await state.filesystem.list(state.workspace.id, "", { limit: 1 });
+    await writeFile(join(state.root, "new.txt"), "new");
+    await assert.rejects(
+      state.filesystem.list(state.workspace.id, "", { limit: 1, cursor: stale.nextCursor }),
+      /Directory changed during pagination/,
+    );
+  } finally { await rm(state.directory, { recursive: true, force: true }); }
+});
 
 test("filesystem bounds directory enumeration", async () => {
   const state = await setup();
