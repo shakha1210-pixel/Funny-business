@@ -847,3 +847,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added page-sized directory listings (200 default, 500 max) with opaque cursors bound to the directory metadata version. A changed directory invalidates its cursor and requires restarting the listing.
 - Kept a hard 5,000-entry total enumeration cap to bound work and memory; pagination limits response size but does not yet support arbitrarily large directories.
 - Updated the browser explorer with a Load more flow and added core/API tests for cursor progression and stale-cursor rejection.
+
+
+### Filesystem lifecycle and API hardening
+- Persisted grants tied to a Workspace that has been unregistered or whose canonical root no longer matches are pruned during filesystem initialization; they are never rebound to another path.
+- Invalid page sizes are rejected (including zero), stale directory cursors return a conflict, and enumeration-limit failures map to an explicit payload-too-large response.
+- Added a regression test for stale grant cleanup and invalid API page sizes.
