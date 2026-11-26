@@ -270,8 +270,8 @@ async function handleWorkspaceApi(
     const message = error instanceof Error ? error.message : "Workspace operation failed";
     const status = /not found/i.test(message) ? 404 :
       /already exists|collision|archived Session|version conflict|changed while opening|changed during read|Directory changed/i.test(message) ? 409 :
-      /access denied/i.test(message) ? 403 :
-      /read limit/i.test(message) ? 413 :
+      /access denied|grant is no longer valid/i.test(message) ? 403 :
+      /read limit|entry limit/i.test(message) ? 413 :
       /required|cannot be empty|must be|valid JSON|configured limit|byte limit|relative slash|absolute paths|parent segment|escapes|Symbolic links|regular file|directory|listing cursor|page limit/i.test(message) ? 400 : 500;
     if (response.headersSent) {
       response.destroy();
