@@ -810,3 +810,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Only user messages are supported. There are no assistant responses, model calls, tool executions, streaming, cancellation, or durable run records.
 - Message snapshots are separate from Session/Workspace metadata and do not yet participate in the proposed SQLite transaction.
 - CI verification is pending; no local build or test execution was available in this workflow.
+
+
+### Session message API boundary hardening
+- Increased only the message endpoint's bounded JSON envelope to 512 KiB while retaining the stricter 64 KiB UTF-8 message-content limit; added an API test with a full 64 KiB emoji payload.
+- Message reads now wait for pending appends on the same Session, ensuring a completed write is visible to a subsequent read.
+- The 64 KiB payload test passed on Ubuntu, Windows, and macOS. The read-ordering change's CI run is still in progress.
