@@ -7,7 +7,7 @@
 
 A Workspace record is a project identity, not an access grant. Listing and reading are denied until an explicit grant is created. Grants are scoped to one Workspace ID, its canonical root path, and a narrow operation set (list, read). Grants are persisted in a versioned atomic JSON snapshot under the host data directory and can be revoked.
 
-On startup, a persisted grant is accepted only if its Workspace still exists and its canonical root path is unchanged. A missing or changed Workspace fails initialization closed rather than silently widening access.
+On startup, a persisted grant is accepted only if its Workspace still exists and its canonical root path is unchanged. Grants for unregistered or changed Workspaces are pruned from the grant snapshot; they are never rebound to a different root.
 
 ## First slice
 
