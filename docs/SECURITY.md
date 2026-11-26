@@ -30,3 +30,7 @@ Never commit tokens, embed credentials in URLs, print secrets, or ask users to p
 
 ## Local host data-directory ownership
 The Node development host uses an atomic-directory guard to prevent two local host processes from opening the same data directory concurrently. The guard is not a sandbox or a kernel-managed lock. After a crash, the stale guard must be removed manually only after verifying that no process still uses the directory. Do not automatically reclaim it based only on PID or timestamps. Network filesystem behavior is not covered by this guarantee.
+
+
+## Workspace filesystem grants
+Workspace registration is not file access authorization. The first filesystem adapter requires an explicit, persisted grant scoped to one Workspace root and the list and/or read operation. Grants can be revoked. Missing grants fail closed. The current adapter rejects traversal and symlink path components, bounds directory enumeration and file reads, and supports metadata-derived version tokens. It is read-only and is not an OS sandbox. Node's portable filesystem APIs do not eliminate every intermediate-component TOCTOU race; do not expose this adapter to untrusted remote clients or treat it as a substitute for OS-level process isolation.
