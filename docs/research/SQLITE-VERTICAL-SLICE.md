@@ -32,13 +32,14 @@ The test is wired into the existing `pnpm run test` command, so the repository's
 - Process-kill tests exercise SQLite process-crash recovery on CI; they are not power-loss, storage-controller, or filesystem fault tests and do not establish universal durability guarantees.
 - Commit ambiguity is simulated at the adapter boundary; no real device I/O error or torn-write fault is induced.
 - The concurrency tests cover a small local-filesystem workload only; they do not prove fairness, starvation freedom, high-contention throughput, network-filesystem safety, or multi-host access.
-- WAL backup/restore, checkpoint pressure under long-running readers, migrations beyond the first version, and sustained reader/writer load remain untested.
+- The backup/restore test is a controlled local snapshot test. It does not cover process termination during backup, external file-copy tools, filesystem snapshots, encryption, or operational retention policies.
+- Migrations beyond the first version and sustained reader/writer load remain untested.
 - It does not evaluate Node worker-thread ownership or a Rust/Tauri host implementation.
 - It does not replace the current JSON Workspace/Session stores or alter the host's production persistence path.
 
 ## Evaluation gates still open
 
-1. Add WAL checkpoint and backup/restore tests, including active readers and recovery after interrupted backup.
+1. Add backup interruption/corruption recovery tests, and define retention/encryption policy.
 2. Add migration upgrade policy tests and sustained load/fairness measurements.
 3. Measure realistic metadata transaction latency and event-loop delay.
 4. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
