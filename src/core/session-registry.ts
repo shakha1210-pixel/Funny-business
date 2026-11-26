@@ -93,19 +93,20 @@ export class SessionRegistry {
     return item ? { id: item.id, cwd: item.cwd } : undefined;
   }
 
-  create(cwd: string, title?: string): Promise<Session> {
+  create(cwd: string, title?: string, requestedId?: string): Promise<Session> {
     return this.#exclusive(async () => {
       this.#assertInitialized();
       const canonical = await this.#canonicalize(cwd);
       const now = this.#now();
       const item: Session = {
-        id: this.#createId(),
+        id: requestedId ?? this.#createId(),
         cwd: canonical,
         title: title?.trim() || "New session — " + (basename(canonical) || canonical),
         createdAt: now,
         updatedAt: now,
         status: "active",
       };
+      if (!item.id.trim()) throw new Error("Session id cannot be empty");
       if (this.#items.has(item.id)) throw new Error("Session id collision: " + item.id);
       const next = new Map(this.#items);
       next.set(item.id, item);
