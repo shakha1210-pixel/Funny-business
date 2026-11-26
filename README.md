@@ -45,7 +45,7 @@ pnpm test
 pnpm dev
 ```
 
-`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace and Session metadata are stored under `~/.funny-business/` by default; set `FUNNY_HOME` to use another data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
+`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace and Session metadata are stored under `~/.funny-business/` by default; set `FUNNY_HOME` to use another data directory. The host acquires a single-host guard before opening the stores; if a process crashes, its `.host.lock` directory remains and must only be removed manually after verifying that no host still uses that data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
 
 ## Research and attribution
 
