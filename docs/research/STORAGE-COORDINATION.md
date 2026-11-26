@@ -1,6 +1,6 @@
 # Storage Coordination and Multi-Process Safety
 
-Status: design study — no storage backend or locking strategy has been selected.
+Status: implementation update — a fail-closed atomic-directory single-host guard is implemented; kernel-managed locks and transactional shared storage remain under evaluation.
 
 ## Problem statement
 
@@ -12,7 +12,7 @@ Each registry serializes mutations only inside its own process. Atomic file repl
 
 The Session and Workspace revision feeds are also process-local. The loopback SSE endpoint streams the state of the host process that accepted the connection; it is not a shared multi-process event log.
 
-**Current operating constraint:** run one Funny-business host against a given `FUNNY_HOME`. Multiple host processes sharing the same data directory are unsupported until a coordination strategy is implemented and verified.
+**Current enforced constraint:** the Node host acquires `FUNNY_HOME/.host.lock` using atomic directory creation before loading either JSON registry. A competing host fails closed. Only one host may use a data directory. This guard is designed for supported local filesystems; network filesystem semantics are not claimed.
 
 ## Requirements
 
@@ -26,14 +26,19 @@ The Session and Workspace revision feeds are also process-local. The loopback SS
 
 ## Options
 
-### A. One host per data directory, enforced by an OS-backed exclusive lock
+### A. Atomic-directory single-host guard (implemented interim mechanism)
 
-The host acquires an OS-level advisory lock before loading stores and holds it for its lifetime. A second host using the same data directory fails with a clear diagnostic instead of opening writable stores.
+The Node host creates `FUNNY_HOME/.host.lock` with an atomic filesystem directory-creation operation before reading either store. The directory contains owner metadata with PID, hostname, start time, and a random ownership token. Normal shutdown verifies the token and removes the directory. A competing host fails closed and reports diagnostic owner information.
 
-- Advantage: smallest change to the current JSON store architecture; preserves a single authoritative in-memory registry and current feed semantics.
-- Cost: requires a reliable cross-platform lock primitive and native/platform validation. A home-grown lock directory with PID/mtime stale reclamation is not an equivalent guarantee.
-- Required behavior: lock acquisition is atomic; crash/OS process teardown releases ownership; lock failure is fail-closed; diagnostics identify the data directory without leaking secrets.
-- Limitation: this is single-writer coordination, not multi-process shared writing.
+- Advantage: no native dependency; atomic directory creation is available through Node on Windows, macOS, and Linux local filesystems; preserves the current single authoritative in-memory registry.
+- Important limitation: a process crash leaves a stale directory. The runtime deliberately does not reclaim it based on PID or timestamp; an operator must verify that no process is using the data directory and manually remove the stale directory.
+- This is not a kernel-managed advisory lock and does not automatically release on process death. It does not claim correctness on arbitrary network filesystems.
+- The owner token prevents this process instance from intentionally releasing a lock whose metadata has changed.
+- CI tests cover same-process contention, separate-process contention, normal release/reacquisition, stale fail-closed behavior, and owner-token mismatch.
+
+### A2. Native kernel-managed lock (future desktop-host option)
+
+A native host adapter may later hold an OS lock handle for the lifetime of the process so the OS releases it on process termination. This requires a maintained implementation with verified Windows, macOS, and Linux semantics; it is not implemented by the current TypeScript host.
 
 ### B. Transactional shared database
 
@@ -54,18 +59,17 @@ A lock file or lock directory can record PID, process metadata, and timestamps.
 
 ## Direction to validate
 
-Prefer **Option A as an interim runtime invariant** if a supported native lock can be implemented and tested across all target OSes. This keeps the current single-host architecture simple while the desktop shell is being built.
+The implemented atomic-directory guard is the interim single-host invariant. It prevents concurrent local host processes but intentionally requires manual recovery after a crash. Before production desktop packaging, evaluate a kernel-managed native lock with automatic release; do not describe the current guard as an OS advisory lock.
 
 Evaluate **Option B as the durable long-term storage direction** before introducing multiple host processes, multi-window independent writers, or shared background workers. If selected, move Workspace and Session mutation coordination behind a shared transaction coordinator; do not preserve the current two-file commit protocol unchanged.
 
-Option C is not accepted as a correctness mechanism.
-
-This is a recommendation for the next design/implementation step, not an implemented guarantee. Until a lock exists, the single-host rule is an operational constraint only.
+Option C's automatic stale PID/mtime reclamation is not accepted as a correctness mechanism. The current atomic-directory guard is implemented, but its stale-lock manual recovery is an explicit operational limitation.
 
 ## Failure and concurrency test plan
 
 - Start two host processes against the same `FUNNY_HOME`; the second must fail before loading writable registries.
-- Kill the lock owner abruptly; a new host must acquire ownership without unsafe stale-lock deletion.
+- Kill the lock owner abruptly; a new host must fail closed on the stale directory until an operator verifies the owner is gone and removes it.
+- Verify normal shutdown removes the guard and a subsequent host can start.
 - Exercise lock contention and release on Windows, macOS, and Linux.
 - Run concurrent Session creation and Workspace mutations through separate host processes; verify no lost updates if/when multi-writer support is introduced.
 - Inject crashes before and after each durable write/transaction boundary.
@@ -75,7 +79,7 @@ This is a recommendation for the next design/implementation step, not an impleme
 
 ## Open decisions
 
-- Which maintained native lock implementation is acceptable for Tauri and the Node development host?
+- Which maintained native lock implementation is acceptable for Tauri and the Node development host, with reliable automatic release on Windows, macOS, and Linux?
 - Should the interim lock be owned by the native desktop process or the shared core host?
 - Which SQLite binding/runtime is supportable across all target OSes and package formats?
 - How should the Workspace/Session transaction coordinator preserve persistence-before-publication semantics?
