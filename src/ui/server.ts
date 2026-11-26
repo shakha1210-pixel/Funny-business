@@ -84,7 +84,7 @@ async function handleWorkspaceApi(
       try {
         for await (const message of registry.watchSessions(workspaceId, { signal: controller.signal })) {
           if (response.destroyed) break;
-          response.write("event: " + message.type + "\\ndata: " + JSON.stringify(message) + "\\n\\n");
+          response.write("event: " + message.type + "\ndata: " + JSON.stringify(message) + "\n\n");
         }
       } finally {
         response.off("close", onClose);
