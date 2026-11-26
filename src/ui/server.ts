@@ -69,6 +69,7 @@ async function handleWorkspaceApi(
   request: IncomingMessage,
   response: ServerResponse,
   pathname: string,
+  searchParams: URLSearchParams,
   registry?: WorkspaceHost,
 ): Promise<void> {
   if (!registry) {
@@ -89,6 +90,51 @@ async function handleWorkspaceApi(
     }
   }
   try {
+    const workspaceGrantRevoke = pathname.match(/^\/api\/workspaces\/([^/]+)\/access-grants\/([^/]+)\/revoke$/);
+    if (workspaceGrantRevoke && method === "POST") {
+      const workspaceId = decodeURIComponent(workspaceGrantRevoke[1]!);
+      const grantId = decodeURIComponent(workspaceGrantRevoke[2]!);
+      const grant = registry.listFilesystemGrants(workspaceId).find((item) => item.id === grantId);
+      if (!grant) {
+        sendJson(response, 404, { error: "Filesystem grant not found" });
+        return;
+      }
+      await registry.revokeFilesystemAccess(grantId);
+      sendJson(response, 200, { revoked: true, grantId });
+      return;
+    }
+    const workspaceGrants = pathname.match(/^\/api\/workspaces\/([^/]+)\/access-grants$/);
+    if (workspaceGrants && method === "GET") {
+      const workspaceId = decodeURIComponent(workspaceGrants[1]!);
+      sendJson(response, 200, { grants: registry.listFilesystemGrants(workspaceId) });
+      return;
+    }
+    if (workspaceGrants && method === "POST") {
+      const workspaceId = decodeURIComponent(workspaceGrants[1]!);
+      const body = await readJson(request);
+      if (body.operations !== undefined &&
+        (!Array.isArray(body.operations) || !body.operations.every((op) => op === "list" || op === "read"))) {
+        sendJson(response, 400, { error: "operations must contain only list and/or read" });
+        return;
+      }
+      const grant = await registry.grantFilesystemAccess(workspaceId, body.operations as ("list" | "read")[] | undefined);
+      sendJson(response, 201, { grant });
+      return;
+    }
+    const workspaceFileRead = pathname.match(/^\/api\/workspaces\/([^/]+)\/file$/);
+    if (workspaceFileRead && method === "GET") {
+      const workspaceId = decodeURIComponent(workspaceFileRead[1]!);
+      const path = searchParams.get("path") ?? "";
+      const version = searchParams.get("version") ?? undefined;
+      sendJson(response, 200, { file: await registry.readFile(workspaceId, path, version) });
+      return;
+    }
+    const workspaceFiles = pathname.match(/^\/api\/workspaces\/([^/]+)\/files$/);
+    if (workspaceFiles && method === "GET") {
+      const workspaceId = decodeURIComponent(workspaceFiles[1]!);
+      sendJson(response, 200, { entries: await registry.listFiles(workspaceId, searchParams.get("path") ?? "") });
+      return;
+    }
     const sessionEvents = pathname.match(/^\/api\/workspaces\/([^/]+)\/sessions\/events$/);
     if (sessionEvents && method === "GET") {
       const workspaceId = decodeURIComponent(sessionEvents[1]!);
@@ -215,8 +261,10 @@ async function handleWorkspaceApi(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workspace operation failed";
     const status = /not found/i.test(message) ? 404 :
-      /already exists|collision|archived Session/i.test(message) ? 409 :
-      /required|cannot be empty|must be|valid JSON|configured limit|byte limit/i.test(message) ? 400 : 500;
+      /already exists|collision|archived Session|version conflict|changed while opening|changed during read/i.test(message) ? 409 :
+      /access denied/i.test(message) ? 403 :
+      /read limit/i.test(message) ? 413 :
+      /required|cannot be empty|must be|valid JSON|configured limit|byte limit|relative slash|absolute paths|parent segment|escapes|Symbolic links|regular file|directory/i.test(message) ? 400 : 500;
     if (response.headersSent) {
       response.destroy();
       return;
@@ -238,7 +286,7 @@ export function createUiServer(
 
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (url.pathname.startsWith("/api/workspaces") || url.pathname.startsWith("/api/sessions")) {
-      await handleWorkspaceApi(request, response, url.pathname, workspaces);
+      await handleWorkspaceApi(request, response, url.pathname, url.searchParams, workspaces);
       return;
     }
     if (url.pathname === "/api/health") {
