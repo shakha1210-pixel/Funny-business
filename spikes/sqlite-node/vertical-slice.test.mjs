@@ -172,17 +172,17 @@ test('SQLite vertical slice commits atomically and resumes its durable sequence 
   const receipt = reopened.prepare(
     'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
   ).get(input.operationId);
-  assert.deepEqual(receipt, { session_id: 'session-1', change_sequence: 1 });
+  assert.equal(receipt.session_id, 'session-1');
+  assert.equal(receipt.change_sequence, 1);
 
   const changes = reopened.prepare(
     'SELECT sequence, operation_id, event_type, entity_id FROM change_log ORDER BY sequence',
   ).all();
-  assert.deepEqual(changes, [{
-    sequence: 1,
-    operation_id: input.operationId,
-    event_type: 'session.created',
-    entity_id: 'session-1',
-  }]);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].sequence, 1);
+  assert.equal(changes[0].operation_id, input.operationId);
+  assert.equal(changes[0].event_type, 'session.created');
+  assert.equal(changes[0].entity_id, 'session-1');
   assert.equal(
     reopened.prepare('SELECT checksum FROM schema_migrations WHERE version = ?').get(1).checksum,
     migrationChecksum,
