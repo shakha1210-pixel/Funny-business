@@ -95,6 +95,15 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     const created = await createdResponse.json() as { workspace: { id: string; title: string } };
     assert.equal(created.workspace.title, "Demo");
 
+    const feedResponse = await fetch(base + "/api/workspaces/workspace-api-test/sessions/events");
+    assert.equal(feedResponse.status, 200);
+    assert.match(feedResponse.headers.get("content-type") ?? "", /text\/event-stream/);
+    const feedReader = feedResponse.body!.getReader();
+    const decoder = new TextDecoder();
+    const baselineChunk = await feedReader.read();
+    assert.match(decoder.decode(baselineChunk.value), /event: snapshot/);
+    assert.match(decoder.decode(baselineChunk.value), /"sessions":\[\]/);
+
     const sessionResponse = await fetch(base + "/api/workspaces/workspace-api-test/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,6 +114,11 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     assert.match(sessionBody.session.id, /^[0-9a-f-]{36}$/i);
     assert.equal(sessionBody.session.title, "API Session");
     assert.equal(sessionBody.session.cwd, "/projects/demo");
+
+    const updateChunk = await feedReader.read();
+    assert.match(decoder.decode(updateChunk.value), /event: snapshot/);
+    assert.match(decoder.decode(updateChunk.value), new RegExp(sessionBody.session.id));
+    await feedReader.cancel();
 
     const sessionsResponse = await fetch(base + "/api/workspaces/workspace-api-test/sessions");
     const listedSessions = await sessionsResponse.json() as { sessions: Array<{ id: string }> };
