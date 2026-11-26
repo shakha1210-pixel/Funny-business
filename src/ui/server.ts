@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import type { WorkspaceRegistry } from "../core/workspace-registry.js";
 
 const DEFAULT_PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../public");
+const RUNTIME_STARTED_AT = performance.now();
 const ASSETS: Readonly<Record<string, { file: string; contentType: string }>> = {
   "/": { file: "index.html", contentType: "text/html; charset=utf-8" },
   "/index.html": { file: "index.html", contentType: "text/html; charset=utf-8" },
@@ -137,6 +138,27 @@ export function createUiServer(
     }
     if (url.pathname === "/api/health") {
       sendJson(response, 200, { status: "ok", ui: "prototype" });
+      return;
+    }
+    if (url.pathname === "/api/diagnostics" && method === "GET") {
+      const memory = process.memoryUsage();
+      const cpu = process.cpuUsage();
+      sendJson(response, 200, {
+        runtime: {
+          node: process.version,
+          platform: process.platform,
+          architecture: process.arch,
+          uptimeMs: Math.round(performance.now() - RUNTIME_STARTED_AT),
+          memoryBytes: {
+            residentSet: memory.rss,
+            heapUsed: memory.heapUsed,
+            heapTotal: memory.heapTotal,
+            external: memory.external,
+            arrayBuffers: memory.arrayBuffers,
+          },
+          cumulativeCpuTimeMicros: { user: cpu.user, system: cpu.system },
+        },
+      });
       return;
     }
 
