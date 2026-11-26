@@ -77,5 +77,5 @@ The UI may cache and project host state but must not invent authoritative state 
 2. Durable atomic JSON snapshot adapter. (Initial implementation; migration journal and cross-process locking remain open)
 3. Loopback host API for Workspace list/create/rename/unregister. (Implemented)
 4. Responsive UI shell and Workspace registration/list integration. (Prototype implemented)
-5. Session list/create/resume navigation backed by host metadata. (Prototype implemented; selected state is in-memory and live Session updates remain next)
+5. Session list/create/resume navigation backed by host metadata. (Prototype implemented; selected state is in-memory; live updates now arrive through a reconnecting host event stream)
 6. Add filesystem tree and agent activity only after permission and cancellation contracts exist.
