@@ -6,7 +6,7 @@ Funny-business combines a modular agent runtime, local and hosted AI models, pro
 
 ## Status
 
-Early architecture and core bootstrap. This is the canonical source repository.
+Early prototype: plugin core, Workspace and Session metadata, local HTTP development host, and a connected browser UI. The agent runtime, filesystem authorization, and desktop shell are not implemented yet.
 
 ## Principles
 
@@ -45,7 +45,7 @@ pnpm test
 pnpm dev
 ```
 
-`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace records are stored under `~/.funny-business/workspaces.json` by default; set `FUNNY_HOME` to use another data directory. The first prototype can register an existing folder by entering its absolute path. Git, model, Session, and agent panels are still presentation placeholders.
+`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace records are stored under `~/.funny-business/workspaces.json` by default; set `FUNNY_HOME` to use another data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
 
 ## Research and attribution
 
