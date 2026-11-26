@@ -834,3 +834,10 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Listing is bounded but not paginated.
 - This adapter is not an OS process sandbox and must not be exposed to untrusted remote clients.
 - Initial host API integration failed typecheck because an optional private field used exact-optional-property semantics; changed its declaration to an explicit union. The corrected CI run passed all three OS typecheck/build/test jobs; additional directory-bound and documentation commits are still running through CI.
+
+
+### Browser file explorer
+- Added a Project files panel with explicit “Grant read-only access” and “Revoke access” controls.
+- Added directory navigation, symlink/unsupported-entry disabled states, file size labels, and a bounded UTF-8 text preview using the metadata version token returned by listing.
+- Added stale-response guards so a slow directory/file request cannot paint content into a newly selected Workspace.
+- UI browser behavior is syntax-checked by CI; the server API and grant lifecycle have integration coverage. No full browser automation/e2e test is configured yet.
