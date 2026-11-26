@@ -692,3 +692,18 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - `rusqlite` is pinned to 0.32.1, but Cargo.lock and exact Rust toolchain pin are not yet committed; first results are exploratory until reproducibility is closed.
 - This is a storage-adapter microbenchmark, not a full Node sidecar versus Tauri host comparison. It does not decide runtime ownership or replace JSON persistence.
 - No production dependency or runtime architecture decision changed.
+
+
+## 2026-11-27 — SQLite benchmark worker-thread comparison
+
+### Completed
+- Extended the Node `node:sqlite` benchmark with a dedicated worker-thread execution mode while preserving the same schema, transaction sequence, WAL/FULL settings, warmup, and measured iteration count.
+- Added a main-thread 10 ms heartbeat in worker mode to measure scheduling delay while SQLite transactions execute off-thread.
+- Corrected the synchronous event-loop probe so its timer is scheduled immediately before the measured transaction loop, rather than before asynchronous database setup.
+- Updated the manual three-OS workflow to emit separate Node main-thread, Node worker-thread, and Rust JSON artifacts.
+- Updated benchmark methodology and binding evaluation to distinguish transaction speed from UI/event-loop responsiveness.
+
+### Verification and limitations
+- The existing Rust compile-check and prior CI matrix remain valid for the previous harness revision; the worker-thread changes require a new CI run.
+- No performance measurements have been collected in this environment. The manual benchmark workflow still must be run, repeated at least five times per OS, and compared by medians/ranges.
+- The worker-thread variant is not yet a production database worker/coordinator; it is an isolated microbenchmark. No runtime/binding decision or production persistence change has been made.
