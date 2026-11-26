@@ -49,3 +49,31 @@ Update this file with meaningful research, implementation, tests, and blockers.
 4. Run CI and fix any TypeScript/test issues.
 5. Add event bus, config, structured logging, and health checks.
 6. Add workspace and Git worktree support.
+
+## 2026-11-27 — Workspace reverse engineering, first pass
+
+### Completed
+- Inspected DeepSeek Harness workspace subsystem contract and package reference.
+- Inspected the public Workspace type contract and selected Workspace Controller, filesystem, and UI workspace documentation.
+- Recorded reviewed upstream revision `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`.
+- Added `docs/research/WORKSPACE-REVERSE-ENGINEERING.md` with the evidence ledger, source map, domain invariants, persistence/recovery design, session membership, archive/pin behavior, filesystem boundary, and Funny Business proposals.
+
+### Confirmed findings
+- Workspace is a durable project-directory record, not a Session and not a sandbox.
+- Stable Workspace ID is separate from canonical path identity.
+- Session membership is validated against the Session header cwd; the ordered membership account remains the ownership record.
+- Workspace unregister/delete is non-destructive: it does not delete folders, files, or session histories.
+- Registry mutations are serialized; multi-write changes use a pending-mutation recovery marker.
+- Workspace domain, filesystem capability, and process execution isolation are separate concerns.
+
+### Still not done
+- No upstream implementation code copied.
+- No full source-level audit of Workspace registry/entity/domain or tests yet.
+- No Funny Business Workspace implementation yet.
+- No cross-platform path/symlink tests yet.
+
+### Next actions
+1. Inspect upstream Workspace `index.ts`, `entity.ts`, `spec.ts`, `paths.ts`, and tests.
+2. Inspect filesystem policy/local backend implementation and tests, especially symlink containment and stale-write guards.
+3. Inspect UI workspace tree/picker state and race handling.
+4. Write a Funny Business Workspace ADR and implement the first independent domain module with tests.
