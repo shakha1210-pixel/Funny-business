@@ -31,9 +31,14 @@ jobs:
       - name: Prepare benchmark result directory
         shell: bash
         run: mkdir -p benchmark-results
-      - name: Run Node built-in SQLite benchmark
+      - name: Check Node benchmark syntax
+        run: node --check spikes/sqlite-benchmark/node.mjs
+      - name: Run Node built-in SQLite benchmark on main thread
         shell: bash
-        run: node spikes/sqlite-benchmark/node.mjs --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node.json
+        run: node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node-sync.json
+      - name: Run Node built-in SQLite benchmark in a worker thread
+        shell: bash
+        run: node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node-worker.json
       - name: Run Rust rusqlite benchmark
         shell: bash
         working-directory: spikes/sqlite-benchmark/rust
