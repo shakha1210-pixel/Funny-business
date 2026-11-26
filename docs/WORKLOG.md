@@ -816,3 +816,21 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Increased only the message endpoint's bounded JSON envelope to 512 KiB while retaining the stricter 64 KiB UTF-8 message-content limit; added an API test with a full 64 KiB emoji payload.
 - Message reads now wait for pending appends on the same Session, ensuring a completed write is visible to a subsequent read.
 - The 64 KiB payload test passed on Ubuntu, Windows, and macOS. The read-ordering change's CI run is still in progress.
+
+
+## 2026-11-27 — Workspace Filesystem Engine, read-only first slice
+
+### Completed
+- Added a host-owned filesystem adapter separate from Workspace identity and Session membership.
+- Added persisted, versioned, atomic Workspace-root grants with independent list/read operations and revocation; startup fails closed if a grant's Workspace is missing or its canonical root changed.
+- Added relative-path validation, parent traversal rejection, symlink component rejection, symlink-aware listings, bounded directory enumeration (5,000 entries), bounded UTF-8 file reads (1 MiB), and metadata-derived version tokens with stale-version checks.
+- Added loopback HTTP endpoints for grant listing/creation/revocation, directory listing, and bounded file reads.
+- Added tests for deny-by-default, symlink behavior, traversal, read limits, stale versions, persistence/revocation, and API lifecycle.
+- Documented the security boundary and limitations, including residual intermediate-component TOCTOU risk in Node's portable filesystem API.
+
+### Limitations
+- Read-only only; no create/write/delete/move/watch or UI file explorer yet.
+- Grants currently cover the full canonical Workspace root, not subdirectory-specific scopes.
+- Listing is bounded but not paginated.
+- This adapter is not an OS process sandbox and must not be exposed to untrusted remote clients.
+- Initial host API integration failed typecheck because an optional private field used exact-optional-property semantics; changed its declaration to an explicit union. The corrected CI run passed all three OS typecheck/build/test jobs; additional directory-bound and documentation commits are still running through CI.
