@@ -15,7 +15,7 @@ This directory is the canonical home for Funny-business project documentation.
 ## Architecture decisions
 
 - [ADR-0001: Workspace, Filesystem, and Execution Boundaries](adr/0001-workspace-domain-boundaries.md) — proposed separation of project identity, file access, permissions, and execution isolation.
-- [ADR-0002: Desktop Shell and Runtime Strategy](adr/0002-desktop-shell-and-runtime.md) — proposes Tauri 2 for desktop-first delivery and browser mode for development/tests.
+- [ADR-0002: Desktop Shell and Runtime Strategy](adr/0002-desktop-shell-and-runtime.md) — proposes Tauri 2 for desktop-first delivery and browser mode for development/tests.\n- [ADR-0003: Transactional Workspace and Session Persistence](adr/0003-transactional-workspace-session-persistence.md) — proposes a unified transactional store and durable change sequence.
 
 ## Research
 
