@@ -671,4 +671,6 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added a WAL checkpoint test proving a long-lived reader pins the checkpoint and releasing its snapshot allows `TRUNCATE` checkpoint completion.
 - Added a controlled `VACUUM INTO` backup and copy/restore test; the restored database retains committed rows and foreign-key enforcement.
 - Backup interruption/corruption, encryption, retention, and sustained load remain future tests.
+- The first backup/restore CI attempt found a Windows `EBUSY` cleanup issue because the restored DB handle was not registered with the fixture teardown. The handle is now closed before temporary-directory removal.
+- Verified GitHub Actions run [45902600113](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902600113): install, typecheck, tests, and build passed on Ubuntu, macOS, and Windows.
 - No production store, journal-mode default, or runtime ownership decision has changed.
