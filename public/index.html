@@ -41,9 +41,7 @@
       <div class="tree-row indent"><span class="file-icon md">MD</span><span>ROADMAP.md</span></div>
       <div class="tree-row muted"><span class="tree-icon">›</span><span>public</span></div>
       <div class="nav-label recent-label">RECENT TASKS <button class="tiny-plus" aria-label="New task">＋</button></div>
-      <div class="task-row active-task"><span class="task-indicator running"></span><span>Workspace foundation</span><span class="task-time">now</span></div>
-      <div class="task-row"><span class="task-indicator done"></span><span>Reverse engineer UI</span><span class="task-time">1h</span></div>
-      <div class="task-row"><span class="task-indicator done"></span><span>Plugin lifecycle audit</span><span class="task-time">2h</span></div>
+      <div id="recent-sessions"><div class="task-row"><span class="task-indicator"></span><span>No sessions yet</span></div></div>
       <div class="sidebar-bottom">
         <div class="resource-line"><span>LOCAL RUNTIME</span><span class="online-dot"></span><span class="online-text">Ready</span></div>
         <div class="resource-meter"><span style="width:34%"></span></div>
@@ -89,7 +87,7 @@
 
     <aside class="agent-panel" id="agent-panel">
       <div class="agent-header"><div class="agent-title"><span class="agent-spark">✳</span><div><strong>Agent</strong><small>Workspace assistant</small></div></div><button class="icon-button" id="agent-collapse" aria-label="Collapse agent panel">⇥</button></div>
-      <div class="agent-context"><span class="context-dot"></span><span>Funny-business</span><span class="context-sep">·</span><span>main</span><button aria-label="Change context">⌄</button></div>
+      <div class="agent-context" id="agent-context"><span class="context-dot"></span><span id="agent-context-workspace">No workspace selected</span><span class="context-sep">·</span><span>main</span><button aria-label="Change context">⌄</button></div>
       <div class="agent-body"><div class="agent-empty-icon">✳</div><h3>Let's make something<br>remarkable.</h3><p>Your agent can explore this project, plan changes, write code, and run checks — with your approval.</p><div class="suggestion-list"><button class="suggestion" data-prompt="Review the current architecture and suggest improvements"><span>⌕</span> Review this project</button><button class="suggestion" data-prompt="Plan the next Workspace implementation milestone"><span>⌘</span> Plan the next milestone</button><button class="suggestion" data-prompt="Explain the current Workspace registry implementation"><span>◉</span> Explain this codebase</button></div></div>
       <div class="agent-composer"><div class="composer-tools"><button title="Attach context">＋</button><span>Ask anything about this project</span><button title="Voice input">⌁</button></div><textarea id="agent-input" rows="3" placeholder="Tell the agent what to build..."></textarea><div class="composer-bottom"><div><button class="mode-pill">◈ Auto</button><button class="mode-pill">⌁ Tools</button></div><button class="send-button" id="send-prompt" aria-label="Send prompt">↑</button></div><div class="composer-note">Agent actions require permission when needed.</div></div>
     </aside>
