@@ -2,37 +2,25 @@
 
 A universal, local-first, extensible AI workspace.
 
-Funny-business combines a modular agent runtime, local and hosted AI models, project workspaces, Git repositories, notebook and compute gateways, and controlled self-evolution.
+Funny-business combines project Workspaces, durable Sessions, an agent runtime, local and hosted models, Git integrations, notebook/compute gateways, plugins, and controlled self-evolution.
 
-## Status
+## Current status
 
-Early prototype: plugin core, Workspace and Session metadata, local HTTP development host, and a connected browser UI. The agent runtime, filesystem authorization, and desktop shell are not implemented yet.
+Early but working prototype: plugin core, Workspace and Session metadata, loopback development host, connected browser UI, read-only Workspace file access, and durable user-message capture. Agent execution, assistant/tool messages, real model providers, native desktop shell, and OS-enforced sandboxing are not implemented yet.
 
 ## Principles
 
 - Windows, macOS, and Linux are first-class targets.
-- Local-first project files; remote sync is always explicit.
-- Model providers, tools, gateways, UI panels, and workflows are modular.
-- Agent actions pass through permission and execution policy.
-- Self-evolution uses isolated branches/workspaces, tests, review, and rollback.
-- Integrations use documented APIs and supported CLIs.
+- Local-first project data; remote sync and external writes are explicit.
+- Host-owned domain state, permissions, persistence, and execution policy.
+- Replaceable providers and plugins behind narrow contracts.
+- Least privilege, OS-level isolation for untrusted code, audit, approval, and rollback.
+- Independent implementation; public references are studied for architecture, not copied.
 
-## Documentation
+## Start here
 
-All project documentation is maintained under [`docs/`](docs/README.md).
-
-Start here:
-- [Documentation index](docs/README.md)
-- [Project instructions](docs/INSTRUCTIONS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Work log](docs/WORKLOG.md)
-- [Security baseline](docs/SECURITY.md)
-
-Research:
-- [DeepSeek Harness study](docs/research/DEEPSEEK-HARNESS.md)
-- [Workspace reverse engineering](docs/research/WORKSPACE-REVERSE-ENGINEERING.md)
-- [Storage coordination study](docs/research/STORAGE-COORDINATION.md)
+- [Architecture & Engineering Handbook](ARCHITECTURE.md) — canonical system design, contracts, security, persistence, research, and open decisions.
+- [Task Chain & Engineering Log](TASKS.md) — current milestone, completed work, blockers, verification, and next actions.
 
 ## Development
 
@@ -46,10 +34,12 @@ pnpm test
 pnpm dev
 ```
 
-`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace and Session metadata are stored under `~/.funny-business/` by default; set `FUNNY_HOME` to use another data directory. The host acquires a single-host guard before opening the stores; if a process crashes, its `.host.lock` directory remains and must only be removed manually after verifying that no host still uses that data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
+The local development host binds to 127.0.0.1:4317 by default (or the port set by PORT). Workspace and Session metadata live under ~/.funny-business/ by default; set FUNNY_HOME to use another data directory. The host enforces single-process ownership. If it crashes, verify no process still owns the data directory before manually removing a stale .host.lock.
+
+The browser UI is a development/test client, not the final desktop shell. The filesystem explorer requires explicit read-only grants. The composer persists user messages but does not yet invoke a model or agent.
 
 ## Research and attribution
 
-We study public architecture and documented extension concepts from DeepSeek Harness. This is an independent implementation; no DeepSeek Harness source files have been copied into the current implementation. Any future source reuse must preserve license and copyright notices and be recorded in third-party notices.
+Funny-business is independently implemented. Public architecture and documented extension concepts from DeepSeek Harness have been studied; no DeepSeek Harness source files have been copied into the current implementation. Future source reuse requires explicit license/provenance review and preservation of required notices.
 
 Project licensing will be finalized before redistribution.
