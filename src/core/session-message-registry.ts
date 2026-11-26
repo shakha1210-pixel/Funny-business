@@ -26,6 +26,9 @@ export class SessionMessageRegistry {
     this.#createId = options.createId ?? randomUUID;
     this.#now = options.now ?? Date.now;
     this.#maxMessageBytes = options.maxMessageBytes ?? 64 * 1024;
+    if (!Number.isSafeInteger(this.#maxMessageBytes) || this.#maxMessageBytes < 1) {
+      throw new RangeError("maxMessageBytes must be a positive safe integer");
+    }
   }
 
   async list(sessionId: string): Promise<readonly SessionMessage[]> {
@@ -44,8 +47,12 @@ export class SessionMessageRegistry {
         throw new Error("Message exceeds the configured byte limit");
       }
       const existing = await this.#store.load(sessionId);
+      const id = this.#createId();
+      if (!id.trim() || existing.some((message) => message.id === id)) {
+        throw new Error("Session message id is empty or already exists: " + id);
+      }
       const message: SessionMessage = {
-        id: this.#createId(),
+        id,
         sessionId,
         role: "user",
         content,
@@ -54,7 +61,11 @@ export class SessionMessageRegistry {
       await this.#store.save(sessionId, [...existing, message]);
       return { ...message };
     });
-    this.#tails.set(sessionId, operation.then(() => undefined, () => undefined));
+    const tail = operation.then(() => undefined, () => undefined);
+    this.#tails.set(sessionId, tail);
+    void tail.then(() => {
+      if (this.#tails.get(sessionId) === tail) this.#tails.delete(sessionId);
+    });
     return operation;
   }
 }
