@@ -81,7 +81,7 @@ The summarizer groups results by OS, adapter, and execution mode; reports median
 - A storage microbenchmark cannot decide the runtime architecture by itself. Include sidecar/native-host startup, idle RSS, process count, IPC/command overhead, packaging size, developer complexity, and security boundaries.
 - Do not infer that a faster adapter permits moving database access into the renderer. Persistence remains host-owned.
 - Do not compare a debug Rust build with optimized Node or vice versa. The Rust workflow uses `--release`.
-- The lockfile bootstrap workflow now generates both `Cargo.lock` and an exact `rust-toolchain.toml`; treat results as exploratory until that PR is reviewed and merged.
+- The first manual lockfile bootstrap attempt failed because the workflow wrote literal `\\n` sequences into `rust-toolchain.toml`; the workflow was corrected to write actual TOML newlines. Rerun it and review/merge the generated lockfile/toolchain PR before benchmarking.
 - Do not use a single run as an acceptance threshold. No performance budgets exist yet.
 
 ## Current status and next steps
