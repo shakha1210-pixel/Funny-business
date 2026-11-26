@@ -9,7 +9,8 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Map relevant DeepSeek Harness Workspace, controller, filesystem, and UI seams.
 - [ ] Review licenses and third-party notices before any reuse.
 - [x] Propose Workspace/filesystem/security boundaries in ADR-0001.
-- [ ] Decide runtime, desktop shell, plugin model, and platform sandbox implementations through further ADRs.
+- [x] Propose desktop-first delivery: Tauri 2 preferred; browser retained for development and tests (ADR-0002).
+- [ ] Benchmark and accept desktop shell/runtime split; decide plugin model and platform sandbox implementations through further ADRs.
 - [ ] Define threat model and supported OS matrix.
 
 ## Phase 1 — Minimal cross-platform core
@@ -62,7 +63,9 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [ ] Controlled activation, health checks, rollback.
 
 ## Phase 7 — Universal desktop release
-- [ ] Choose Tauri or Electron from prototype evidence.
+- [ ] Build the Tauri 2 vertical slice and native directory picker.
+- [ ] Compare TypeScript sidecar and Rust-host runtime options with measured startup, idle memory, and package size.
+- [ ] Accept ADR-0002 after Windows, macOS, and Linux validation.
 - [ ] Windows packaging.
 - [ ] macOS packaging and signing/notarization.
 - [ ] Linux packaging.
