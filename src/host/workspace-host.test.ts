@@ -24,11 +24,19 @@ class MemorySessionStore implements SessionStore {
   async save(items: readonly Session[]) { this.#items = structuredClone(items); }
 }
 
-class MemorySessionCreationJournal implements SessionCreationJournal {\n  pending: PendingSessionCreation | undefined;\n  async load() { return this.pending; }\n  async save(entry: PendingSessionCreation) { this.pending = structuredClone(entry); }\n  async clear() { this.pending = undefined; }\n}\n\nasync function createHost() {
+class MemorySessionCreationJournal implements SessionCreationJournal {
+  pending: PendingSessionCreation | undefined;
+  async load() { return this.pending; }
+  async save(entry: PendingSessionCreation) { this.pending = structuredClone(entry); }
+  async clear() { this.pending = undefined; }
+}
+
+async function createHost() {
   let workspaceId = 0;
   let sessionId = 0;
   const workspaceStore = new MemoryWorkspaceStore();
-  const sessionStore = new MemorySessionStore();\n  const journal = new MemorySessionCreationJournal();
+  const sessionStore = new MemorySessionStore();
+  const journal = new MemorySessionCreationJournal();
   const sessions = new SessionRegistry({
     store: sessionStore,
     canonicalizeDirectory: async (path) => path,
