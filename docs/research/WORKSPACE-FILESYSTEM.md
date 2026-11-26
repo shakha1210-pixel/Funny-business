@@ -37,7 +37,7 @@ The API is available through the loopback development server. It is not an agent
 - Listing and reads are bounded, but there is no pagination yet; directories exceeding the entry cap fail closed.
 - Metadata version tokens are stale-read guards, not cryptographic content hashes.
 - Node's portable filesystem API does not provide an openat-style directory-handle walk on every supported platform. Symlink checks, canonical-root checks, O_NOFOLLOW, and opened-file identity checks reduce risk, but a hostile concurrent filesystem actor may still race intermediate path components. Do not treat this adapter as an OS sandbox or expose it to untrusted remote clients.
-- No local UI file browser yet; tests exercise the host/API contract directly.
+- The browser UI now exposes a read-only file explorer with explicit grant and revoke controls, directory navigation, bounded text preview, and workspace-switch race guards.
 
 ## Next steps
 
