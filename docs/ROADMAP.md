@@ -29,6 +29,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [ ] Workspace crash recovery and safe file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
+- [x] Initial selected-Workspace switching and Session list/create/resume navigation in the browser UI.
 - [ ] Git status, diff, branch, worktree, commit.
 - [ ] GitHub auth and scoped repository permissions.
 - [ ] Selective project context retrieval.
