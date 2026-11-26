@@ -289,6 +289,7 @@ async function loadFilesystem() {
   }
   try {
     const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/access-grants");
+    if (selectedWorkspaceId !== workspace.id) return;
     filesystemGrant = result.grants.find((grant) => grant.operations.includes("list")) ?? null;
     if (!filesystemGrant) {
       const grantButton = document.createElement("button");
@@ -345,6 +346,7 @@ async function renderFilesystemDirectory() {
   const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
   const browser = document.querySelector("#file-browser");
   const preview = document.querySelector("#file-preview");
+  const requestedPath = filesystemPath;
   if (!workspace || !filesystemGrant) return;
   browser.replaceChildren();
   preview.hidden = true;
@@ -366,8 +368,9 @@ async function renderFilesystemDirectory() {
   }
   browser.append(toolbar);
   try {
-    const query = new URLSearchParams({ path: filesystemPath });
+    const query = new URLSearchParams({ path: requestedPath });
     const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/files?" + query.toString());
+    if (selectedWorkspaceId !== workspace.id || filesystemPath !== requestedPath) return;
     if (!result.entries.length) {
       const empty = document.createElement("p");
       empty.className = "file-browser-empty";
@@ -422,6 +425,7 @@ async function previewWorkspaceFile(name, version) {
   const preview = document.querySelector("#file-preview");
   try {
     const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/file?" + query.toString());
+    if (selectedWorkspaceId !== workspace.id) return;
     preview.textContent = result.file.content;
     preview.hidden = false;
     preview.dataset.path = result.file.path;
