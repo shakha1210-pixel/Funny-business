@@ -67,6 +67,31 @@ async function handleWorkspaceApi(
     }
   }
   try {
+    const sessionEvents = pathname.match(/^\/api\/workspaces\/([^/]+)\/sessions\/events$/);
+    if (sessionEvents && method === "GET") {
+      const workspaceId = decodeURIComponent(sessionEvents[1]!);
+      registry.listSessions(workspaceId);
+      const controller = new AbortController();
+      const onClose = () => controller.abort();
+      response.once("close", onClose);
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+        "X-Content-Type-Options": "nosniff",
+        "X-Accel-Buffering": "no",
+      });
+      try {
+        for await (const message of registry.watchSessions(workspaceId, { signal: controller.signal })) {
+          if (response.destroyed) break;
+          response.write("event: " + message.type + "\\ndata: " + JSON.stringify(message) + "\\n\\n");
+        }
+      } finally {
+        response.off("close", onClose);
+        if (!response.destroyed) response.end();
+      }
+      return;
+    }
     const workspaceSessions = pathname.match(/^\/api\/workspaces\/([^/]+)\/sessions$/);
     if (workspaceSessions && method === "GET") {
       const workspaceId = decodeURIComponent(workspaceSessions[1]!);
@@ -150,6 +175,10 @@ async function handleWorkspaceApi(
     const status = /not found/i.test(message) ? 404 :
       /already exists|collision/i.test(message) ? 409 :
       /required|cannot be empty|must be|valid JSON|64 KiB/i.test(message) ? 400 : 500;
+    if (response.headersSent) {
+      response.destroy();
+      return;
+    }
     sendJson(response, status, { error: message });
   }
 }
