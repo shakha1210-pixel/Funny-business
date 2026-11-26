@@ -583,7 +583,7 @@ test('VACUUM INTO backup can be restored as a consistent database with committed
   db.prepare('INSERT INTO backup_probe(id, value) VALUES (?, ?)').run('item-1', 'first');
   db.prepare('INSERT INTO backup_probe(id, value) VALUES (?, ?)').run('item-2', 'second');
 
-  const directory = filename.slice(0, filename.lastIndexOf(process.platform === 'win32' ? '\\' : '/'));
+  const directory = dirname(filename);
   const backupFilename = join(directory, 'snapshot.sqlite');
   const restoredFilename = join(directory, 'restored.sqlite');
   db.exec(`VACUUM INTO '${backupFilename.replaceAll("'", "''")}'`);
