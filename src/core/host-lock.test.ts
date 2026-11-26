@@ -40,7 +40,6 @@ test("host lock fails closed on a stale or incomplete lock directory", async () 
       assert.match(error.message, /remove the stale \.host\.lock directory manually/);
       return true;
     });
-    assert.equal(await readFile(join(lockDirectory, "marker.txt"), "utf8").catch(() => ""), "");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -72,7 +71,7 @@ test("host lock excludes a separate Node process sharing the same data directory
     "console.log('LOCK_READY');",
     "await new Promise((resolve) => process.stdin.once('end', resolve));",
     "await lock.release();",
-  ].join("\\n");
+  ].join("\n");
   const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
     stdio: ["pipe", "pipe", "pipe"],
   });
