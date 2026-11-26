@@ -27,7 +27,8 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
 - [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
 - [x] Revisioned Session feed with atomic baseline, bounded overflow resynchronization, cancellation, loopback SSE transport, and live browser Session navigation.
-- [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation (cross-process coordination remains open).
+- [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation.
+- [x] Fail-closed cross-process single-host guard acquired before loading persistent registries (crash-stale locks require verified manual cleanup; kernel-managed auto-release remains future work).
 - [ ] Safe filesystem access grants and file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
@@ -87,4 +88,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Validate the [storage coordination study](research/STORAGE-COORDINATION.md): choose an OS-backed single-host lock for the interim runtime or a transactional shared store before allowing multiple host processes. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
+Continue the [storage coordination study](research/STORAGE-COORDINATION.md): validate the guard on supported local filesystems and decide whether the desktop host should provide a kernel-managed lock or the application should move to a transactional shared store. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
