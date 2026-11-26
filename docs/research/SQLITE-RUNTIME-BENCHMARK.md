@@ -50,7 +50,7 @@ Supported options:
 - `journal`: `WAL` or `DELETE`.
 - `synchronous`: `FULL` or `NORMAL`.
 
-Before benchmarking, run the [Cargo lockfile bootstrap workflow](../../.github/workflows/bootstrap-cargo-lockfile.yml) on `main`, review and merge its PR. The benchmark workflow uses `cargo --locked` and intentionally refuses to resolve an uncommitted dependency graph. The manual GitHub Actions workflow then runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS. It repeats each adapter independently (default: five repetitions, configurable up to 20) and uploads one JSON result per adapter/repetition plus a generated `summary.md` per OS as OS-specific artifacts:
+Before benchmarking, run the [Cargo lockfile bootstrap workflow](../../.github/workflows/bootstrap-cargo-lockfile.yml) on `main`, review and merge its PR. It generates `Cargo.lock` and pins the exact Rust toolchain version used to generate it. The benchmark workflow uses `cargo --locked` and intentionally refuses to resolve an uncommitted dependency graph. The manual GitHub Actions workflow then runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS. It repeats each adapter independently (default: five repetitions, configurable up to 20) and uploads one JSON result per adapter/repetition plus a generated `summary.md` per OS as OS-specific artifacts:
 [SQLite runtime benchmark workflow](../../.github/workflows/sqlite-benchmark.yml).
 
 ## Reported measurements
@@ -81,7 +81,7 @@ The summarizer groups results by OS, adapter, and execution mode; reports median
 - A storage microbenchmark cannot decide the runtime architecture by itself. Include sidecar/native-host startup, idle RSS, process count, IPC/command overhead, packaging size, developer complexity, and security boundaries.
 - Do not infer that a faster adapter permits moving database access into the renderer. Persistence remains host-owned.
 - Do not compare a debug Rust build with optimized Node or vice versa. The Rust workflow uses `--release`.
-- The initial workflow pins rusqlite but does not yet commit a Cargo.lock. Treat first results as exploratory until the lockfile and toolchain are pinned and checked in.
+- The lockfile bootstrap workflow now generates both `Cargo.lock` and an exact `rust-toolchain.toml`; treat results as exploratory until that PR is reviewed and merged.
 - Do not use a single run as an acceptance threshold. No performance budgets exist yet.
 
 ## Current status and next steps
@@ -90,7 +90,7 @@ The summarizer groups results by OS, adapter, and execution mode; reports median
 - The Rust compile-check passed its first CI run [45904796532](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45904796532). The Node harness now measures both main-thread blocking and worker-thread isolation; the updated manual workflow still needs to be run to produce comparable artifacts.
 - The workflow now defaults to five independent repetitions per adapter and OS, with separate JSON artifacts for each run. Dispatch inputs are passed through environment variables (not interpolated into shell source), and `set -euo pipefail` ensures a failed benchmark cannot be hidden by `tee`. No benchmark result is recorded yet; the manual workflow must be run from GitHub Actions.
 - First verify compilation and output shape on all three OS.
-- Commit a generated Cargo.lock and pin the Rust toolchain after the first successful workflow run.
+- Run the bootstrap workflow and review/merge the generated Cargo.lock and exact Rust toolchain pin.
 - Run the manual workflow with five repetitions per OS and compare median throughput, p95/p99 latency, and run-to-run spread.
 - Add a bounded concurrent-reader workload before choosing database thread ownership.
 - Later compare a minimal Tauri Rust host against a Node sidecar; do not equate this adapter microbenchmark with the full desktop runtime decision.
