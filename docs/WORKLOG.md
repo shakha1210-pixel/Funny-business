@@ -771,3 +771,15 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - The corrected test revision passed the Ubuntu and macOS CI jobs; Windows typecheck, tests, summarizer validation, benchmark smoke tests, and build were progressing at the time of this entry.
 - Earlier CI attempts exposed test-fixture assumptions (repetition counts and Windows URL path conversion); those were fixed rather than suppressing the failing checks.
 - No benchmark measurements have been collected; no SQLite binding/runtime decision has changed.
+
+
+## 2026-11-27 — Automatic per-platform benchmark summaries
+
+### Completed
+- Extended the manual SQLite benchmark workflow to run the result summarizer after all repetitions on each OS.
+- Each OS artifact now includes raw JSON measurements and a generated `summary.md`, so median/range and latency summaries are available without a separate local analysis step.
+- Summary generation uses the same validated repeat count and fails the job if the result set is malformed or incomplete.
+
+### Verification and limitations
+- Workflow change is committed; its push-triggered CI validation is pending.
+- The benchmark workflow itself remains manual and requires a reviewed/merged Cargo.lock PR before Rust's `--locked` build can execute.
