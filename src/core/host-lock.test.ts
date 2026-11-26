@@ -69,7 +69,7 @@ test("host lock excludes a separate Node process sharing the same data directory
     "const lock = new JsonHostLock(" + JSON.stringify(directory) + ");",
     "await lock.acquire();",
     "console.log('LOCK_READY');",
-    "await new Promise((resolve) => process.stdin.once('end', resolve));",
+    "await new Promise((resolve) => setTimeout(resolve, 1000));",
     "await lock.release();",
   ].join("\n");
   const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
@@ -79,7 +79,6 @@ test("host lock excludes a separate Node process sharing the same data directory
     const [ready] = await once(child.stdout, "data");
     assert.match(String(ready), /LOCK_READY/);
     await assert.rejects(new JsonHostLock(directory).acquire(), /already locked/);
-    child.stdin.end();
     const [code] = await once(child, "exit");
     assert.equal(code, 0);
     const next = new JsonHostLock(directory);
