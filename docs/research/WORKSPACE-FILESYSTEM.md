@@ -13,7 +13,7 @@ On startup, a persisted grant is accepted only if its Workspace still exists and
 
 - Relative slash-separated paths only; absolute paths, drive prefixes, backslashes, empty segments, dot and parent segments are rejected.
 - Symlink path components are rejected. Directory listings identify symlink entries without following them.
-- Listing is bounded to 5,000 entries by default.
+- Directory enumeration is bounded to 5,000 entries total. Results are paginated with a default page size of 200 and a maximum of 500 entries per page; cursors are bound to the directory metadata version, and changes during pagination require restarting the listing.
 - File reads are bounded to 1 MiB by default and UTF-8 decoded.
 - Directory entries and file reads expose opaque SHA-256 version tokens derived from filesystem metadata.
 - A read may provide the expected version; a stale token returns a conflict instead of silently reading a changed file.
@@ -34,15 +34,15 @@ The API is available through the loopback development server. It is not an agent
 
 - Read-only: no create, write, rename, delete, move, or watch operations.
 - Grants are Workspace-root-wide for the selected operations; per-subdirectory grants and expiry are not implemented.
-- Listing and reads are bounded, but there is no pagination yet; directories exceeding the entry cap fail closed.
+- Directories exceeding the 5,000-entry enumeration cap fail closed; pagination bounds response sizes but does not yet stream arbitrarily large directories.
 - Metadata version tokens are stale-read guards, not cryptographic content hashes.
 - Node's portable filesystem API does not provide an openat-style directory-handle walk on every supported platform. Symlink checks, canonical-root checks, O_NOFOLLOW, and opened-file identity checks reduce risk, but a hostile concurrent filesystem actor may still race intermediate path components. Do not treat this adapter as an OS sandbox or expose it to untrusted remote clients.
-- The browser UI now exposes a read-only file explorer with explicit grant and revoke controls, directory navigation, bounded text preview, and workspace-switch race guards.
+- The browser UI exposes a read-only file explorer with explicit grant and revoke controls, directory navigation, paginated listings, bounded text preview, and workspace-switch race guards.
 
 ## Next steps
 
 1. Complete cross-platform CI and fix any platform-specific failures.
 2. Add paginated listing and file metadata/encoding policy.
-3. Add a UI file explorer with visible grant/revoke controls.
+3. Continue UI file explorer hardening and add browser end-to-end coverage.
 4. Only then design guarded writes, atomic replacement, backups, and stale-version checks.
 5. Use OS-level sandboxing for commands, plugins, notebooks, and model-generated code; a Workspace grant alone does not constrain child processes.
