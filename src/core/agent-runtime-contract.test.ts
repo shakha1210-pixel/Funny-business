@@ -67,7 +67,8 @@ test("terminal runs remain unchanged during startup recovery", () => {
 });
 
 test("running records require a start timestamp and transitions cannot predate it", () => {
-  const invalid = { ...run("running") };\n  delete invalid.startedAt;
+  const invalid = { ...run("running") };
+  delete invalid.startedAt;
   assert.throws(() => transitionAgentRun(invalid, "completed", 120), /must have a valid startedAt/);
   assert.throws(() => transitionAgentRun(run("running"), "completed", 104), /cannot precede its start/);
 });
