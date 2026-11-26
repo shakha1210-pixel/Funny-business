@@ -518,3 +518,16 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Add a pnpm lockfile and restore deterministic dependency caching.
 3. Define filesystem access grants and safe file operations before exposing file browsing.
 4. Continue toward the Tauri vertical slice only after host capability contracts remain stable.
+
+
+## 2026-11-27 — Cross-process storage coordination study
+
+### Completed
+- Added `docs/research/STORAGE-COORDINATION.md` to document the current single-host constraint, JSON lost-update risk, process-local feed limits, and cross-platform failure requirements.
+- Compared an OS-backed single-host lock, a transactional shared database, and lock-file leases.
+- Recorded a validation direction: use a supported OS-level lock as an interim single-writer guard if available; evaluate SQLite plus a host-level Workspace/Session transaction coordinator before introducing multiple writers. A PID/mtime lock-file lease is not accepted as a production correctness boundary.
+- Linked the study from the documentation index and roadmap.
+
+### Not implemented
+- No cross-process lock has been added. The one-host-per-`FUNNY_HOME` rule remains an operational constraint, not an enforced guarantee.
+- No SQLite dependency, migration system, or durable cross-process event log has been added.
