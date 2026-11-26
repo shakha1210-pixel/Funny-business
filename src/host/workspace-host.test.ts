@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { WorkspaceRegistry, type Workspace, type WorkspaceStore } from "../core/workspace-registry.js";
 import { SessionRegistry, type Session, type SessionStore } from "../core/session-registry.js";
+import { SessionMessageRegistry } from "../core/session-message-registry.js";
+import type { SessionMessage, SessionMessageStore } from "../core/session-message-store.js";
 import { RegistryWorkspaceHost } from "./workspace-host.js";
 import type { PendingSessionCreation, SessionCreationJournal } from "../core/session-creation-journal.js";
 
@@ -24,6 +26,12 @@ class MemorySessionStore implements SessionStore {
   async save(items: readonly Session[]) { this.#items = structuredClone(items); }
 }
 
+class MemorySessionMessageStore implements SessionMessageStore {
+  #items = new Map<string, readonly SessionMessage[]>();
+  async load(sessionId: string) { return structuredClone(this.#items.get(sessionId) ?? []); }
+  async save(sessionId: string, messages: readonly SessionMessage[]) { this.#items.set(sessionId, structuredClone(messages)); }
+}
+
 class MemorySessionCreationJournal implements SessionCreationJournal {
   pending: PendingSessionCreation | undefined;
   failNextClear = false;
@@ -41,6 +49,7 @@ async function createHost() {
   const workspaceStore = new MemoryWorkspaceStore();
   const sessionStore = new MemorySessionStore();
   const journal = new MemorySessionCreationJournal();
+  const messageStore = new MemorySessionMessageStore();
   const sessions = new SessionRegistry({
     store: sessionStore,
     canonicalizeDirectory: async (path) => path,
@@ -56,7 +65,8 @@ async function createHost() {
     now: () => 123,
   });
   await registry.initialize();
-  return { registry, sessions, workspaceStore, sessionStore, journal, host: new RegistryWorkspaceHost(registry, sessions, journal) };
+  const messages = new SessionMessageRegistry({ store: messageStore, sessions, createId: (() => { let id = 0; return () => `message-${++id}`; })(), now: () => 456 });
+  return { registry, sessions, workspaceStore, sessionStore, journal, messages, host: new RegistryWorkspaceHost(registry, sessions, journal, messages) };
 }
 
 test("registry adapter exposes the shared Workspace host contract", async () => {
@@ -86,6 +96,22 @@ test("host creates durable Sessions and attaches only matching Workspace paths",
   assert.equal(renamed.title, "Architecture");
   const archived = await host.archiveSession(created.id);
   assert.equal(archived.status, "archived");
+});
+
+
+test("host durably appends user messages to active Sessions", async () => {
+  const { host } = await createHost();
+  const workspace = await host.create("/messages", "Messages");
+  const session = await host.createSession(workspace.id, "Conversation");
+  const first = await host.appendUserMessage(session.id, "Build the first slice");
+  const second = await host.appendUserMessage(session.id, "Then add tests");
+  assert.equal(first.role, "user");
+  assert.equal(second.id, "message-2");
+  assert.deepEqual((await host.listMessages(session.id)).map((message) => message.content), [
+    "Build the first slice", "Then add tests",
+  ]);
+  await host.archiveSession(session.id);
+  await assert.rejects(host.appendUserMessage(session.id, "Too late"), /archived Session/);
 });
 
 test("host compensates a persisted Session when Workspace attachment fails", async () => {
