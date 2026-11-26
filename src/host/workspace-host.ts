@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { Session } from "../core/session-registry.js";
+import type { SessionCreationJournal } from "../core/session-creation-journal.js";
 import type { SessionRegistry } from "../core/session-registry.js";
 import type { Workspace, WorkspaceChange, WorkspaceRegistry, WorkspaceRegistrySnapshot } from "../core/workspace-registry.js";
 
@@ -67,20 +69,47 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
   }
 
   async createSession(workspaceId: string, title?: string): Promise<Session> {
-    const workspace = this.#registry.get(workspaceId);
-    if (!workspace) throw new Error("Workspace not found: " + workspaceId);
-    const session = await this.#sessions.create(workspace.path, title);
-    try {
-      await this.#registry.attachSession(workspaceId, session.id);
-      return session;
-    } catch (error) {
+    const operation = this.#creationTail.then(async () => {
+      const workspace = this.#registry.get(workspaceId);
+      if (!workspace) throw new Error("Workspace not found: " + workspaceId);
+      const sessionId = randomUUID();
+      await this.#journal.save({ schemaVersion: 1, workspaceId, sessionId });
       try {
-        await this.#sessions.discard(session.id);
-      } catch (cleanupError) {
-        throw new AggregateError([error, cleanupError], "Session creation failed and compensation could not be persisted");
+        const session = await this.#sessions.create(workspace.path, title, sessionId);
+        await this.#registry.attachSession(workspaceId, session.id);
+        await this.#journal.clear();
+        return session;
+      } catch (error) {
+        try {
+          await this.#sessions.discard(sessionId);
+          await this.#journal.clear();
+        } catch (cleanupError) {
+          throw new AggregateError([error, cleanupError], "Session creation failed; durable recovery is pending");
+        }
+        throw error;
       }
-      throw error;
+    });
+    this.#creationTail = operation.then(() => undefined, () => undefined);
+    return operation;
+  }
+
+  /** Reconciles the one write-ahead operation before the host accepts requests. */
+  async recoverPendingSessionCreation(): Promise<void> {
+    const pending = await this.#journal.load();
+    if (!pending) return;
+    const workspace = this.#registry.get(pending.workspaceId);
+    const session = this.#sessions.get(pending.sessionId);
+    const attached = workspace?.sessionIds.includes(pending.sessionId) ?? false;
+
+    if (attached && !session) {
+      throw new Error("Recovery found a Workspace attachment without its Session: " + pending.sessionId);
     }
+    if (session && workspace && !attached) {
+      await this.#sessions.discard(pending.sessionId);
+    }
+    // If the Workspace was unregistered after a successful attachment, preserve the
+    // Session: unregister is intentionally non-destructive and must never erase user work.
+    await this.#journal.clear();
   }
 
   renameSession(sessionId: string, title: string): Promise<Session> {
