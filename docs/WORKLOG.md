@@ -602,3 +602,23 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Documentation-only change. No local build/test was run.
 - Latest main-branch CI observed before this entry: run [45896991314](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45896991314) completed successfully.
 - The pnpm lockfile bootstrap workflow has not yet produced a merged lockfile; SQLite binding evaluation remains gated on that step.
+
+
+## 2026-11-27 — SQLite binding/runtime evaluation
+
+### Completed
+- Compared Node 22 built-in `node:sqlite`, `better-sqlite3` v13, and a Tauri/Rust SQLite host path against the current TypeScript host, proposed Tauri 2 shell, Windows/macOS/Linux targets, and host-only database security boundary.
+- Recorded official runtime maturity and API constraints: Node 22.16 `node:sqlite` remains Stability 1.1 (Active development), and its DatabaseSync/StatementSync APIs execute synchronously.
+- Reviewed better-sqlite3 v13 Node-API migration and its published platform-specific package targets; native packaging and unsupported architecture source-build behavior remain spike acceptance criteria.
+- Confirmed the Tauri v2 SQL plugin is SQLx-backed and supports Windows, macOS, and Linux, but its documented JavaScript guest bindings must not be exposed as the app's general renderer database interface.
+- Added `docs/research/SQLITE-BINDING-EVALUATION.md` with a candidate matrix, provisional recommendation, required cross-platform spike, performance/security measurements, and blockers.
+- Updated ADR-0003 and the documentation index to link the evaluation and make the host-only SQL boundary explicit.
+
+### Provisional conclusion
+- No binding selected and no dependency added. Carry two viable architecture paths into the spike: a TypeScript host using built-in `node:sqlite` (with `better-sqlite3` as fallback), or a Rust-owned Tauri host with a matching Node dev adapter behind the same transaction contract.
+- The Node built-in option must pass an API-stability and event-loop-blocking assessment. The Rust option must prove that domain invariants are not duplicated across runtimes.
+
+### Verification and limitations
+- Documentation-only change; no local build/test or packaging spike was run.
+- The pnpm lockfile bootstrap remains a prerequisite before adding an npm SQLite dependency.
+- Official references reviewed: Node.js v22.16 SQLite docs, Tauri v2 SQL plugin docs/source, and better-sqlite3 v13 release/package metadata.
