@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -85,7 +86,7 @@ function openDatabase(filename) {
   return db;
 }
 
-function createSessionAtomically(db, input) {
+function createSessionAtomically(db, input, { afterStep, commit = () => db.exec('COMMIT') } = {}) {
   const prior = db.prepare(
     'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
   ).get(input.operationId);
@@ -103,24 +104,28 @@ function createSessionAtomically(db, input) {
     db.prepare(
       'INSERT INTO sessions(id, cwd, created_at) VALUES (?, ?, ?)',
     ).run(input.sessionId, input.cwd, input.createdAt);
+    afterStep?.('session-inserted');
 
     db.prepare(
       'INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?, ?)',
     ).run(input.workspaceId, input.sessionId);
+    afterStep?.('membership-inserted');
 
     const change = db.prepare(
       'INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?, ?, ?, ?)',
     ).run(input.operationId, 'session.created', input.sessionId, input.createdAt);
+    afterStep?.('change-log-inserted');
 
     const sequence = Number(change.lastInsertRowid);
     db.prepare(
       'INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?, ?, ?, ?)',
     ).run(input.operationId, 'session.create', input.sessionId, sequence);
+    afterStep?.('receipt-inserted');
 
-    db.exec('COMMIT');
+    commit();
     return { sessionId: input.sessionId, changeSequence: sequence, replayed: false };
   } catch (error) {
-    db.exec('ROLLBACK');
+    try { db.exec('ROLLBACK'); } catch {}
     throw error;
   }
 }
@@ -239,4 +244,145 @@ test('a Session can belong to only one Workspace', async (t) => {
       .get('shared-session').count,
     1,
   );
+});
+
+
+test('injected failures at each pre-commit write boundary roll back the whole operation', async (t) => {
+  const { db } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-fault', '/fault');
+  const stages = [
+    'session-inserted',
+    'membership-inserted',
+    'change-log-inserted',
+    'receipt-inserted',
+  ];
+
+  for (const [index, stage] of stages.entries()) {
+    assert.throws(() => createSessionAtomically(db, {
+      operationId: `op-fault-${index}`,
+      workspaceId: 'w-fault',
+      sessionId: `s-fault-${index}`,
+      cwd: '/fault',
+      createdAt: '2026-11-27T00:00:00.000Z',
+    }, {
+      afterStep(current) {
+        if (current === stage) throw new Error(`injected failure at ${stage}`);
+      },
+    }), new RegExp(stage));
+
+    assert.equal(db.prepare('SELECT count(*) AS count FROM sessions').get().count, 0);
+    assert.equal(db.prepare('SELECT count(*) AS count FROM workspace_sessions').get().count, 0);
+    assert.equal(db.prepare('SELECT count(*) AS count FROM operation_receipts').get().count, 0);
+    assert.equal(db.prepare('SELECT count(*) AS count FROM change_log').get().count, 0);
+  }
+});
+
+test('process death before COMMIT leaves no partial rows after SQLite recovery', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-crash', '/crash');
+  db.close();
+
+  const child = `
+    import { DatabaseSync } from 'node:sqlite';
+    const db = new DatabaseSync(${JSON.stringify(filename)});
+    db.exec('PRAGMA foreign_keys = ON; BEGIN IMMEDIATE');
+    db.prepare('INSERT INTO sessions(id, cwd, created_at) VALUES (?, ?, ?)')
+      .run('s-crash-before-commit', '/crash', '2026-11-27T00:00:00.000Z');
+    db.prepare('INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?, ?)')
+      .run('w-crash', 's-crash-before-commit');
+    db.prepare('INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?, ?, ?, ?)')
+      .run('op-crash-before-commit', 'session.created', 's-crash-before-commit', '2026-11-27T00:00:00.000Z');
+    db.prepare('INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?, ?, ?, ?)')
+      .run('op-crash-before-commit', 'session.create', 's-crash-before-commit', 1);
+    process.exit(71);
+  `;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', child], { encoding: 'utf8' });
+  assert.equal(result.status, 71, result.stderr);
+
+  const recovered = openDatabase(filename);
+  registerDatabase(recovered);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM sessions').get().count, 0);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM workspace_sessions').get().count, 0);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM operation_receipts').get().count, 0);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM change_log').get().count, 0);
+});
+
+test('process death after COMMIT but before notification is recovered from the durable receipt and change log', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-postcommit', '/postcommit');
+  db.close();
+
+  const child = `
+    import { DatabaseSync } from 'node:sqlite';
+    const db = new DatabaseSync(${JSON.stringify(filename)});
+    db.exec('PRAGMA foreign_keys = ON; BEGIN IMMEDIATE');
+    db.prepare('INSERT INTO sessions(id, cwd, created_at) VALUES (?, ?, ?)')
+      .run('s-postcommit', '/postcommit', '2026-11-27T00:00:00.000Z');
+    db.prepare('INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?, ?)')
+      .run('w-postcommit', 's-postcommit');
+    const change = db.prepare('INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?, ?, ?, ?)')
+      .run('op-postcommit', 'session.created', 's-postcommit', '2026-11-27T00:00:00.000Z');
+    db.prepare('INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?, ?, ?, ?)')
+      .run('op-postcommit', 'session.create', 's-postcommit', Number(change.lastInsertRowid));
+    db.exec('COMMIT');
+    process.exit(72);
+  `;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', child], { encoding: 'utf8' });
+  assert.equal(result.status, 72, result.stderr);
+
+  const recovered = openDatabase(filename);
+  registerDatabase(recovered);
+  const receipt = recovered.prepare(
+    'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
+  ).get('op-postcommit');
+  assert.equal(receipt.session_id, 's-postcommit');
+  assert.equal(receipt.change_sequence, 1);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM change_log').get().count, 1);
+
+  const replay = createSessionAtomically(recovered, {
+    operationId: 'op-postcommit',
+    workspaceId: 'w-postcommit',
+    sessionId: 's-postcommit',
+    cwd: '/postcommit',
+    createdAt: '2026-11-27T00:00:00.000Z',
+  });
+  assert.deepEqual(replay, { sessionId: 's-postcommit', changeSequence: 1, replayed: true });
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM sessions').get().count, 1);
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM change_log').get().count, 1);
+});
+
+test('lost COMMIT acknowledgement is resolved by reopening and reading the original operation receipt', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-unknown', '/unknown');
+
+  const input = {
+    operationId: 'op-unknown-outcome',
+    workspaceId: 'w-unknown',
+    sessionId: 's-unknown-outcome',
+    cwd: '/unknown',
+    createdAt: '2026-11-27T00:00:00.000Z',
+  };
+
+  assert.throws(() => createSessionAtomically(db, input, {
+    commit() {
+      db.exec('COMMIT');
+      throw new Error('simulated lost COMMIT acknowledgement');
+    },
+  }), /lost COMMIT acknowledgement/);
+
+  db.close();
+  const recovered = openDatabase(filename);
+  registerDatabase(recovered);
+  const receipt = recovered.prepare(
+    'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
+  ).get(input.operationId);
+  assert.equal(receipt.session_id, input.sessionId);
+  assert.equal(receipt.change_sequence, 1);
+
+  const replay = createSessionAtomically(recovered, input);
+  assert.deepEqual(replay, {
+    sessionId: input.sessionId,
+    changeSequence: 1,
+    replayed: true,
+  });
 });
