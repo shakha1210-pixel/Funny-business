@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -55,6 +57,37 @@ test("host lock refuses to release when ownership metadata changes", async () =>
     await assert.rejects(lock.release(), /ownership changed/);
     assert.equal(await readFile(ownerPath, "utf8").then(() => true), true);
   } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("host lock excludes a separate Node process sharing the same data directory", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "funny-business-host-lock-process-"));
+  const moduleUrl = new URL("./host-lock.ts", import.meta.url).href;
+  const script = [
+    "import { JsonHostLock } from " + JSON.stringify(moduleUrl) + ";",
+    "const lock = new JsonHostLock(" + JSON.stringify(directory) + ");",
+    "await lock.acquire();",
+    "console.log('LOCK_READY');",
+    "await new Promise((resolve) => process.stdin.once('end', resolve));",
+    "await lock.release();",
+  ].join("\\n");
+  const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  try {
+    const [ready] = await once(child.stdout, "data");
+    assert.match(String(ready), /LOCK_READY/);
+    await assert.rejects(new JsonHostLock(directory).acquire(), /already locked/);
+    child.stdin.end();
+    const [code] = await once(child, "exit");
+    assert.equal(code, 0);
+    const next = new JsonHostLock(directory);
+    await next.acquire();
+    await next.release();
+  } finally {
+    child.kill();
     await rm(directory, { recursive: true, force: true });
   }
 });
