@@ -469,3 +469,24 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification
 - Final implementation and recovery regression tests passed GitHub Actions run [45892902755](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45892902755) on Ubuntu, macOS, and Windows: dependency install, typecheck, tests, and build all succeeded.
 - No local checkout/build was run in this environment.
+
+
+## 2026-11-27 — Repository and documentation consistency audit
+
+### Reviewed
+- Re-read the documentation index, project instructions, architecture, roadmap, security baseline, performance guide, interface specification, both ADRs, root README, and the current implementation files for Session creation recovery and host startup.
+- Checked the complete repository tree: project Markdown remains under `docs/`, with research and ADRs in their dedicated directories.
+- Checked the latest main-branch GitHub Actions run [45892991167](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45892991167): Ubuntu, Windows, and macOS jobs all succeeded.
+
+### Consistency fixes
+- Removed a duplicated Session capability limitation in the architecture document.
+- Fixed a literal escaped newline accidentally embedded in the Phase 2 roadmap checklist.
+- Updated the roadmap next milestone: Session crash recovery is implemented and CI-verified; Session live updates and cross-process coordination are now the remaining work.
+- Updated the root README and interface specification to distinguish implemented Session metadata navigation from the not-yet-implemented conversation/agent runtime.
+- Updated ADR-0001's context and implementation sequence to reflect the current Workspace/Session host rather than describing the pre-implementation prototype.
+
+### Current verified boundaries
+- The Session creation journal covers one pending Session-create/Workspace-attach operation in a single host process. It is not a general transaction manager and does not coordinate multiple processes.
+- Workspace and Session JSON snapshots remain separate stores; there is no cross-process lock, schema migration framework, or pnpm lockfile yet.
+- Session state streaming, filesystem access grants/provider, native folder picker, Tauri shell, conversation persistence, and agent execution remain unimplemented.
+- No local checkout/build was run; the cited GitHub Actions run is the observed cross-platform verification.
