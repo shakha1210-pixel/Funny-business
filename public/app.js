@@ -357,23 +357,25 @@ async function renderFilesystemDirectory(append = false) {
     browser.querySelector(".load-more-files")?.remove();
   }
   preview.hidden = true;
-  const toolbar = document.createElement("div");
-  toolbar.className = "file-toolbar";
-  const pathLabel = document.createElement("span");
-  pathLabel.className = "file-path";
-  pathLabel.textContent = "/" + filesystemPath;
-  toolbar.append(pathLabel);
-  if (filesystemPath) {
-    const up = document.createElement("button");
-    up.className = "text-button";
-    up.textContent = "Up";
-    up.addEventListener("click", () => {
-      filesystemPath = filesystemPath.split("/").slice(0, -1).join("/");
-      void renderFilesystemDirectory();
-    });
-    toolbar.append(up);
+  if (!append) {
+    const toolbar = document.createElement("div");
+    toolbar.className = "file-toolbar";
+    const pathLabel = document.createElement("span");
+    pathLabel.className = "file-path";
+    pathLabel.textContent = "/" + filesystemPath;
+    toolbar.append(pathLabel);
+    if (filesystemPath) {
+      const up = document.createElement("button");
+      up.className = "text-button";
+      up.textContent = "Up";
+      up.addEventListener("click", () => {
+        filesystemPath = filesystemPath.split("/").slice(0, -1).join("/");
+        void renderFilesystemDirectory();
+      });
+      toolbar.append(up);
+    }
+    browser.append(toolbar);
   }
-  browser.append(toolbar);
   try {
     const query = new URLSearchParams({ path: requestedPath, limit: "200" });
     if (append && filesystemCursor) query.set("cursor", filesystemCursor);
