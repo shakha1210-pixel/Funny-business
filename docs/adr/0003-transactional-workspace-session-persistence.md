@@ -103,7 +103,10 @@ Out of scope for the first local-first release. A future remote provider must pr
 ## Acceptance tests
 
 - Session creation and Workspace attachment either both commit or neither commits.
-- Crash injection before and after every transaction statement leaves a valid recoverable database.
+- Process death before COMMIT leaves no partial domain, membership, receipt, or change-log rows after reopen.
+- Process death after COMMIT but before notification is recovered from the durable receipt/change log without duplicate mutation.
+- A lost COMMIT acknowledgement is resolved only after reopening and querying the original operation receipt; an unresolved outcome fails closed.
+- Reusing an operation ID with a different operation payload is rejected.
 - A Session cannot belong to multiple Workspaces.
 - Workspace unregister preserves Session records and their conversation data.
 - Failed transactions publish no in-memory events.
