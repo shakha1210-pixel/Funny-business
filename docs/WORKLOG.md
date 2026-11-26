@@ -372,3 +372,38 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Add Session domain/persistence and selected-Workspace state on top of the host/feed contract.
 3. Design the filesystem access-grant and safe file-operation contracts before exposing a file tree.
 4. Add durable mutation recovery and cross-process store coordination before multi-process desktop/sidecar operation.
+
+
+
+## 2026-11-27 — Session domain and persistence foundation
+
+### Completed
+- Added an independent Session domain registry with stable IDs, canonical working directories, titles, timestamps, and active/archived status.
+- Added serialized Session mutations and persistence-before-publication semantics, with defensive copies returned to callers.
+- Added a versioned JSON Session store using a same-directory temporary file, restrictive file mode, file fsync, atomic rename, and POSIX directory fsync.
+- Connected SessionRegistry as the authoritative Session header reader used by WorkspaceRegistry; Workspace attachment still verifies canonical working-directory equality.
+- Extended the host adapter with Session listing, creation, rename, and archive capabilities.
+- Session creation is coordinated by the host: persist Session metadata, attach its ID to the Workspace, and compensate by discarding the Session if attachment fails.
+- Added local HTTP endpoints for Workspace Session listing/creation and Session rename/archive.
+- Added tests for Session persistence/restart, canonicalization, failure atomicity, host integration, and HTTP lifecycle.
+- Updated the architecture and roadmap to distinguish Session metadata from future conversation history and agent execution state.
+
+### Guarantees and limitations
+- Session metadata is persisted independently from Workspace metadata; each JSON snapshot is atomic, but the two-file operation is not a cross-store transaction.
+- A process crash between Session creation and Workspace attachment may leave an unreferenced Session. Startup reconciliation and a durable transaction journal remain required before claiming crash-safe multi-store consistency.
+- Workspace unregister does not delete Sessions or project files; Sessions remain durable and may become unassigned.
+- This milestone does not yet store messages, model responses, tool calls, token usage, checkpoints, or resumable agent execution.
+- The current Session store does not provide cross-process locking or schema migrations beyond rejecting unsupported versions.
+- The Session API is a local development transport; no renderer session UI or Tauri adapter is implemented yet.
+
+### Verification
+- Workspace State Feed CI passed on Ubuntu, macOS, and Windows in run [45890723915](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45890723915).
+- Session milestone CI is triggered by the latest commits and must be checked before this milestone is marked verified.
+- No local checkout/build was run in this environment.
+
+### Next actions
+1. Verify Session domain, host, and HTTP API on Ubuntu, macOS, and Windows.
+2. Add crash reconciliation for unreferenced/missing Session IDs and define cross-store recovery before multi-process runtime.
+3. Implement selected Workspace and Session UI state with state-feed-driven updates.
+4. Add conversation/message persistence and an explicit agent-run lifecycle separately from Session metadata.
+5. Design filesystem access grants and safe file operations before exposing the file tree.
