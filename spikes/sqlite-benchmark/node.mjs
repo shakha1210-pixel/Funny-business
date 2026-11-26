@@ -52,18 +52,18 @@ try {
   `);
   db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('workspace-1', '/benchmark/workspace');
 
-  const insertSession = db.prepare('INSERT INTO sessions(id, cwd, created_at) VALUES (?, ?, ?)');
-  const insertMembership = db.prepare('INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?, ?)');
-  const insertChange = db.prepare('INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?, ?, ?, ?)');
-  const insertReceipt = db.prepare('INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?, ?, ?, ?)');
   const samples = [];
   const runOne = (index, collect) => {
     const id = `session-${index}`;
     const op = `operation-${index}`;
-    const now = new Date().toISOString();
+    const now = '2026-11-27T00:00:00.000Z';
     const started = performance.now();
     db.exec('BEGIN IMMEDIATE');
     try {
+      const insertSession = db.prepare('INSERT INTO sessions(id, cwd, created_at) VALUES (?, ?, ?)');
+      const insertMembership = db.prepare('INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?, ?)');
+      const insertChange = db.prepare('INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?, ?, ?, ?)');
+      const insertReceipt = db.prepare('INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?, ?, ?, ?)');
       insertSession.run(id, '/benchmark/workspace', now);
       insertMembership.run('workspace-1', id);
       const change = insertChange.run(op, 'session.created', id, now);
