@@ -90,6 +90,22 @@ test("filesystem enforces bounded reads and stale version tokens", async () => {
   } finally { await rm(state.directory, { recursive: true, force: true }); }
 });
 
+
+test("filesystem bounds directory enumeration", async () => {
+  const state = await setup();
+  try {
+    const bounded = new WorkspaceFilesystem({
+      workspaces: state.workspaces,
+      grants: state.grantStore,
+      createId: () => "bounded",
+      maxListEntries: 1,
+    });
+    await bounded.initialize();
+    await bounded.grant(state.workspace.id);
+    await assert.rejects(bounded.list(state.workspace.id), /entry limit/);
+  } finally { await rm(state.directory, { recursive: true, force: true }); }
+});
+
 test("filesystem grants persist, reload, and can be revoked", async () => {
   const state = await setup();
   try {
