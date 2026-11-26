@@ -166,7 +166,7 @@ export function createUiServer(
     }
 
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
-    if (url.pathname.startsWith("/api/workspaces")) {
+    if (url.pathname.startsWith("/api/workspaces") || url.pathname.startsWith("/api/sessions")) {
       await handleWorkspaceApi(request, response, url.pathname, workspaces);
       return;
     }
