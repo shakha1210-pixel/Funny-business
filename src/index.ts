@@ -5,6 +5,7 @@ import { WorkspaceRegistry } from "./core/workspace-registry.js";
 import { JsonWorkspaceStore } from "./core/workspace-store-json.js";
 import { SessionRegistry } from "./core/session-registry.js";
 import { JsonSessionStore } from "./core/session-store-json.js";
+import { JsonSessionCreationJournal } from "./core/session-creation-journal.js";
 import { createUiServer, listenUiServer } from "./ui/server.js";
 import { RegistryWorkspaceHost } from "./host/workspace-host.js";
 
@@ -22,7 +23,8 @@ async function main(): Promise<void> {
   await workspaces.initialize();
 
   const plugins = new PluginManager();
-  const workspaceHost = new RegistryWorkspaceHost(workspaces, sessions);
+  const workspaceHost = new RegistryWorkspaceHost(\n    workspaces,\n    sessions,\n    new JsonSessionCreationJournal(join(home, "session-creation.pending.json")),\n  );
+  await workspaceHost.recoverPendingSessionCreation();
   const server = createUiServer(undefined, workspaceHost);
   const address = await listenUiServer(server);
   console.info("Funny-business core starting");
