@@ -89,3 +89,31 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Not done
 - No bulk merge into one oversized Markdown file; each topic retains one canonical document.
 - No ADR has been created yet; `docs/adr/` will be introduced when the first architecture decision is ready.
+
+
+## 2026-11-27 — Workspace source and test-suite review
+
+### Completed
+- Inspected the upstream Workspace implementation: `index.ts`, `entity.ts`, `spec.ts`, `paths.ts`, and `types.ts`.
+- Inspected the upstream Workspace test suite and catalogued its coverage across bootstrap, path handling, persistence recovery, ordering, membership, archive/pin, default initialization, and follow-up lifecycle.
+- Confirmed mandatory Session-persistence startup dependency, header-only bootstrap, serialized mutation semantics, explicit pending-operation recovery, and non-destructive unregister behavior.
+- Recorded implementation-level findings and remaining gaps in `docs/research/WORKSPACE-REVERSE-ENGINEERING.md`.
+
+### New design observations
+- Entity writes are serialized at the storage table update chain; no-op writes are avoided.
+- Windows path qualification has explicit drive-relative and UNC handling.
+- Archive/pin are registry-global navigation state, separate from Workspace Session ownership.
+- Archive checks active work by default; explicit stop mode persists archive state before provider stop requests.
+- Failure-injection tests are a useful model for our own persistence/recovery test strategy.
+
+### Not done
+- No upstream implementation code copied.
+- No Workspace Controller, filesystem local backend/policy, or UI picker/tree source audit yet.
+- No Funny Business Workspace code or ADR yet.
+- No local build/test or successful CI result verified.
+
+### Next actions
+1. Inspect Workspace Controller implementation and tests, especially event/stream ordering and reconnect behavior.
+2. Inspect filesystem policy/local backend and tests, focusing on symlink traversal, containment, and stale-write protection.
+3. Inspect UI picker/tree state and cancellation/race handling.
+4. Then write ADR-0001 for Funny Business Workspace boundaries and implement the smallest independently designed domain module.
