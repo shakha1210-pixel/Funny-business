@@ -72,9 +72,9 @@ The UI may cache and project host state but must not invent authoritative state 
 
 ## First implementation milestones
 
-1. Workspace Registry domain contract and tests.
-2. Durable persistence adapter with crash-safe writes and migrations.
-3. Host controller with baseline snapshot and ordered updates.
-4. UI shell and static navigation projections.
-5. Connect Workspace switching and lifecycle actions.
+1. Workspace Registry domain contract and tests. (Implemented)
+2. Durable atomic JSON snapshot adapter. (Initial implementation; migration journal and cross-process locking remain open)
+3. Loopback host API for Workspace list/create/rename/unregister. (Implemented)
+4. Responsive UI shell and Workspace registration/list integration. (Prototype implemented)
+5. Reconnect-safe state feed and real Session/task projections. (Next)
 6. Add filesystem tree and agent activity only after permission and cancellation contracts exist.
