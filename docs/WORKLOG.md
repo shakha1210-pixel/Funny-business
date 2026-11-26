@@ -2,7 +2,7 @@
 
 Update this file with meaningful research, implementation, tests, and blockers.
 
-## 2026-11-26 — Bootstrap
+## 2026-11-26 — Bootstrap and first core implementation
 
 ### Completed
 - Confirmed repository: shakha1210-pixel/Funny-business.
@@ -10,7 +10,11 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Confirmed push permission through the connected GitHub integration.
 - Set Windows, macOS, and Linux as first-class targets.
 - Inspected DeepSeek Harness README, architecture guide, development guide, safety notice, and package manifest.
-- Added initial project docs and TypeScript scaffold.
+- Added README, architecture, roadmap, security baseline, and upstream research notes.
+- Added TypeScript/Node project manifest and compiler configuration.
+- Implemented the initial typed plugin contracts, service registry, and plugin lifecycle manager.
+- Added initial lifecycle tests and a GitHub Actions matrix for Ubuntu, Windows, and macOS.
+- Added .gitignore for build artifacts and local runtime data.
 
 ### DeepSeek Harness findings
 - Describes an everything-is-a-plugin architecture built on Cordis.
@@ -22,16 +26,21 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Its safety notice says it has not undergone a security audit and warns about model-generated code, commands, plugins, credentials, files, and network access.
 - Its development guide describes native Windows development and optional WSL 2; each OS environment needs its own toolchain and validation.
 
+### Verification status
+- Source files and workflow were committed to GitHub.
+- Tests and builds have NOT yet been executed in a local checkout or CI.
+- The first CI run will provide the initial cross-platform validation.
+
 ### Not done yet
 - No DeepSeek Harness source code has been copied.
-- No package-by-package source audit is complete.
-- No code has been executed or tested in a local runtime.
-- No desktop UI, model adapter, notebook gateway, or real sandbox exists yet.
-- No CI workflow exists yet.
+- No package-by-package upstream source audit is complete.
+- No desktop UI, model adapter, notebook gateway, or real OS-level sandbox exists yet.
+- No dependency lockfile has been generated.
 
 ### Next actions
-1. Map relevant upstream packages and tests.
-2. Review MIT license and third-party notices before any source reuse.
-3. Decide Cordis versus a smaller plugin kernel.
-4. Complete plugin lifecycle, service registry, rollback, and tests.
-5. Add cross-platform CI.
+1. Inspect upstream Cordis primer/tutorial and plugin-manager implementation/tests.
+2. Review upstream MIT license and third-party notices before any source reuse.
+3. Decide Cordis versus a smaller independent plugin kernel.
+4. Run CI and fix any TypeScript/test issues.
+5. Add event bus, config, structured logging, and health checks.
+6. Add workspace and Git worktree support.
