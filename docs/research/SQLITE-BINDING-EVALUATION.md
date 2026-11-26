@@ -76,7 +76,7 @@ Do not select a binding yet. Carry these two paths into the vertical-slice bench
 - Keep domain invariants and transaction semantics in one shared specification and contract-test suite. Do not fork Workspace/Session business rules between Rust and TypeScript.
 - Do not expose the Tauri SQL plugin's general guest SQL API to the renderer.
 
-The vertical slice must compare the full host choice, not just raw SQL speed. A Node sidecar with a native addon and a native Rust host have different process, startup, packaging, and security costs.
+The vertical slice must compare the full host choice, not just raw SQL speed. A Node sidecar with a native addon and a native Rust host have different process, startup, packaging, and security costs. The initial same-schema Node `node:sqlite` and Rust `rusqlite` microbenchmark harness is in `spikes/sqlite-benchmark/`; its methodology and limitations are recorded in [SQLite runtime benchmark](SQLITE-RUNTIME-BENCHMARK.md).
 
 ## Required spike and acceptance matrix
 
@@ -104,7 +104,9 @@ A candidate fails if it requires renderer SQL authority, silently falls back to 
 
 1. A maintainer must run the manual pnpm lockfile bootstrap workflow and review/merge its PR.
 2. Confirm the exact Node 22 minor version used by CI and desktop sidecar (do not assume every Node 22 release has the same `node:sqlite` surface).
-3. Implement the smallest throwaway vertical slice in isolated branches or a dedicated spike directory; do not replace the current JSON stores yet.
-4. Record measured results and then update ADR-0002/0003 with an accepted runtime/binding decision.
+3. Run the manual cross-platform SQLite runtime benchmark workflow with the same iteration count and settings on all three operating systems.
+4. Commit the generated Cargo.lock and pin the Rust toolchain after the first successful run; repeat at least five times per OS before interpreting performance.
+5. Extend the benchmark with a Node worker-thread variant and bounded concurrent readers, then compare full sidecar versus native-host startup/idle/packaging costs.
+6. Record measured results and only then update ADR-0002/0003 with an accepted runtime/binding decision.
 
 Until those steps pass, JSON remains the active persistence implementation and SQLite remains a proposed migration target.
