@@ -13,7 +13,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test": "node --check public/app.js && node --import tsx --test src/core/host-lock.test.ts src/core/plugin-manager.test.ts src/core/workspace-registry.test.ts src/core/workspace-store-json.test.ts src/core/session-registry.test.ts src/core/session-creation-journal.test.ts src/host/workspace-host.test.ts src/ui/server.test.ts && node --test spikes/sqlite-node/vertical-slice.test.mjs",
+    "test": "node --check public/app.js && node --import tsx --test src/core/host-lock.test.ts src/core/plugin-manager.test.ts src/core/workspace-registry.test.ts src/core/workspace-store-json.test.ts src/core/session-registry.test.ts src/core/session-message-registry.test.ts src/core/session-creation-journal.test.ts src/host/workspace-host.test.ts src/ui/server.test.ts && node --test spikes/sqlite-node/vertical-slice.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
