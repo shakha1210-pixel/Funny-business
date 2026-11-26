@@ -217,3 +217,30 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Add path/symlink and persistence failure-injection tests on all three OS runners.
 3. Build the first UI shell and Workspace navigator against a host controller, keeping renderer state non-authoritative.
 4. Add a pnpm lockfile using a real pnpm install environment and re-enable CI caching.
+
+
+## 2026-11-27 — Durable Workspace store and first UI prototype
+
+### Completed
+- Added `JsonWorkspaceStore` with schema version 1, record validation, duplicate-ID detection, staged exclusive temp-file writes, file fsync, atomic rename, and POSIX directory fsync.
+- Added tests for empty-store initialization, round-trip persistence, corrupt JSON, and unsupported schema rejection.
+- Added a loopback-only Node HTTP server with an explicit static asset allowlist, GET/HEAD-only handling, basic security headers, and a local health endpoint.
+- Added the first responsive Funny Business workspace UI prototype: global rail, Workspace navigator, project overview, activity, agent panel, task composer, and responsive collapse behavior.
+- Added prototype interactions for navigation, panel collapse, suggestion prompts, and task composition. The agent, file tree, Git status, and Workspace actions are illustrative UI data and are not yet connected to host services.
+- Wired the local UI server into application startup and added server boundary tests.
+- Kept fonts local/system-backed to preserve the local-first behavior and avoid third-party font requests.
+- Verified GitHub Actions run [45888181882](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45888181882): dependency install, typecheck, tests, and build succeeded on Ubuntu, macOS, and Windows.
+
+### Explicit limitations
+- JSON snapshot persistence is atomic for one file but does not yet provide cross-process locking, a multi-record mutation journal, or schema migrations beyond rejecting unknown versions.
+- The UI is a static interactive prototype. Workspace data, project tree, task history, model state, and Git status are currently sample presentation data.
+- The agent composer does not invoke a model or execute tools.
+- The server binds to loopback only and serves an allowlisted set of assets; no remote access or authentication is implemented.
+- No desktop shell has been selected.
+
+### Next actions
+1. Add Workspace host API endpoints and connect the UI to real registry snapshots and mutations.
+2. Replace sample project/task/model status with live host state.
+3. Add a proper state feed with baseline plus ordered updates and cancellation/reconnect handling.
+4. Add path/symlink and crash-recovery tests; decide if/when SQLite replaces JSON snapshots.
+5. Generate and commit pnpm-lock.yaml in a real pnpm environment, then restore CI dependency caching.
