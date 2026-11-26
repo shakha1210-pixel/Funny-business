@@ -148,6 +148,19 @@ test("filesystem grants persist, reload, and can be revoked", async () => {
   } finally { await rm(state.directory, { recursive: true, force: true }); }
 });
 
+
+test("startup prunes grants whose Workspace has been unregistered", async () => {
+  const state = await setup();
+  try {
+    await state.filesystem.grant(state.workspace.id);
+    await state.workspaces.unregister(state.workspace.id);
+    const restarted = new WorkspaceFilesystem({ workspaces: state.workspaces, grants: state.grantStore });
+    await restarted.initialize();
+    assert.deepEqual(restarted.listGrants(state.workspace.id), []);
+    assert.deepEqual(state.grantStore.items, []);
+  } finally { await rm(state.directory, { recursive: true, force: true }); }
+});
+
 test("filesystem grant store rejects corrupt and unsupported schemas", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-grant-corrupt-"));
   try {
