@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, TransactionBehavior};
 use std::env;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let id = format!("session-{}", index);
         let operation = format!("operation-{}", index);
         let now = "2026-11-27T00:00:00.000Z";
-        let transaction = connection.transaction()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         transaction.execute("INSERT INTO sessions(id, cwd, created_at) VALUES (?1, ?2, ?3)",
             params![id, "/benchmark/workspace", now])?;
         transaction.execute("INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?1, ?2)",
@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let operation = format!("operation-{}", index);
         let now = "2026-11-27T00:00:00.000Z";
         let started = Instant::now();
-        let transaction = connection.transaction()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         transaction.execute("INSERT INTO sessions(id, cwd, created_at) VALUES (?1, ?2, ?3)",
             params![id, "/benchmark/workspace", now])?;
         transaction.execute("INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?1, ?2)",
