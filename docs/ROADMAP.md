@@ -85,4 +85,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Complete Session crash recovery validation and cross-process storage coordination design, then add state-feed-driven Session UI updates and a native folder-picker capability. Implement the filesystem access-grant and safe file-operation layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
+Add a revisioned Session state feed with atomic baseline/subscription, bounded overflow resynchronization, and cancellation; then wire the browser Session list to live host state. In parallel, design cross-process storage coordination before allowing multiple host processes to write the JSON stores. Add and commit a pnpm lockfile, then restore dependency caching. Keep filesystem access grants and safe file operations ahead of file browsing. The next desktop milestone remains a Tauri vertical slice against the same host contract.
