@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-11-27
 - **Decision owners:** Funny-business maintainers
-- **Related:** [ADR-0001](0001-workspace-domain-boundaries.md), [Storage coordination study](../research/STORAGE-COORDINATION.md), [Dependency reproducibility](../research/DEPENDENCY-REPRODUCIBILITY.md)
+- **Related:** [ADR-0001](0001-workspace-domain-boundaries.md), [Storage coordination study](../research/STORAGE-COORDINATION.md), [Dependency reproducibility](../research/DEPENDENCY-REPRODUCIBILITY.md), [SQLite binding evaluation](../research/SQLITE-BINDING-EVALUATION.md)
 
 ## Context
 
@@ -22,7 +22,7 @@ The project now needs a durable model that can atomically coordinate Workspace, 
 
 Evaluate SQLite as the default durable local store and migrate Workspace and Session into one database only after a working cross-platform vertical slice and dependency/packaging review.
 
-Do not add a SQLite package until the pnpm lockfile has been generated and reviewed. Do not remove the current JSON stores until migration, backup, rollback, and compatibility tests exist.
+Do not add a SQLite package until the pnpm lockfile has been generated and reviewed. The binding/runtime comparison is recorded in [SQLite binding evaluation](../research/SQLITE-BINDING-EVALUATION.md); it is research, not a final selection. Database access remains host-owned: do not expose a general SQL connection or arbitrary query API to the renderer. Do not remove the current JSON stores until migration, backup, rollback, and compatibility tests exist.
 
 ### Logical schema
 
@@ -91,13 +91,14 @@ Out of scope for the first local-first release. A future remote provider must pr
 ## Migration strategy
 
 1. Generate and review the pinned pnpm lockfile.
-2. Compare supported SQLite bindings/runtime options in a small Node 22 + Tauri packaging spike.
-3. Define and test the schema and migration runner independently of UI.
-4. Implement a repository/transaction coordinator used by both Workspace and Session domain operations.
-5. Add an importer that reads both JSON stores, validates all existing membership invariants, and imports them in one database transaction.
-6. Keep source JSON files untouched until import verification and backup succeed.
-7. Add restart, rollback, crash-injection, and cross-platform tests.
-8. Switch the host to SQLite only after the complete matrix passes; retain a documented export/rollback path for at least the first migration release.
+2. Complete the Node 22 + Tauri 2 binding/runtime spike using the acceptance matrix in [SQLite binding evaluation](../research/SQLITE-BINDING-EVALUATION.md).
+3. Select a host-owned binding/runtime split and record it in ADR-0002/0003; do not expose renderer SQL access.
+4. Define and test the schema and migration runner independently of UI.
+5. Implement a repository/transaction coordinator used by both Workspace and Session domain operations.
+6. Add an importer that reads both JSON stores, validates all existing membership invariants, and imports them in one database transaction.
+7. Keep source JSON files untouched until import verification and backup succeed.
+8. Add restart, rollback, crash-injection, and cross-platform tests.
+9. Switch the host to SQLite only after the complete matrix passes; retain a documented export/rollback path for at least the first migration release.
 
 ## Acceptance tests
 
