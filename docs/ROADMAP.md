@@ -23,9 +23,10 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 ## Phase 2 — Workspace and repositories
 - [x] Initial Workspace domain registry and persistence contract.
 - [x] Atomic JSON snapshot persistence adapter (recovery journal and migrations pending).
-- [ ] Workspace host API, state feed, crash recovery, and safe file operations.
+- [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
+- [ ] Reconnect-safe Workspace state feed, crash recovery, and safe file operations.
 - [x] Draft application interface and Workspace interaction specification.
-- [x] First responsive local UI prototype (host API integration pending).
+- [x] First responsive local UI prototype connected to the browser host API.
 - [ ] Git status, diff, branch, worktree, commit.
 - [ ] GitHub auth and scoped repository permissions.
 - [ ] Selective project context retrieval.
@@ -81,4 +82,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Add a reconnect-safe Workspace state feed, Session domain/persistence, native folder-picker capability, and real selected-Workspace switching. Then implement the filesystem access-grant layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching.
+Add a reconnect-safe Workspace state feed, Session domain/persistence, native folder-picker capability, and real selected-Workspace switching. Then implement the filesystem access-grant layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
