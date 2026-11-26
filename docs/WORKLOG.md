@@ -789,9 +789,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 
 ### Completed
 - Updated the manual lockfile bootstrap workflow to record the exact stable Rust compiler version as `spikes/sqlite-benchmark/rust/rust-toolchain.toml` before generating the lockfile.
-- The review PR now contains both `Cargo.lock` and the exact toolchain pin; the release build is checked using that pinned toolchain and `--locked`.
+- The first manual run failed because `printf` emitted literal `\\n` sequences, making the toolchain TOML invalid. The workflow was corrected to emit actual newlines; a rerun is still required before a PR can be created.
 - Updated the benchmark research note and prerequisites accordingly.
 
 ### Verification and limitations
-- Workflow changes are committed; push-triggered CI validation is pending.
-- The bootstrap workflow itself remains manual and has not generated a lockfile yet. The user must run it on `main`, review the PR, and merge it before dispatching the benchmark workflow.
+- The corrected workflow change is committed; push-triggered CI validation is pending.
+- The first manual run failed at `cargo generate-lockfile` before creating a branch or PR. The corrected bootstrap workflow must be rerun on `main`; then review and merge its PR before dispatching the benchmark workflow.
