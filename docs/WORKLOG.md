@@ -622,3 +622,20 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Documentation-only change; no local build/test or packaging spike was run.
 - The pnpm lockfile bootstrap remains a prerequisite before adding an npm SQLite dependency.
 - Official references reviewed: Node.js v22.16 SQLite docs, Tauri v2 SQL plugin docs/source, and better-sqlite3 v13 release/package metadata.
+
+## 2026-11-27 — SQLite Node vertical-slice spike
+
+### Completed
+- Added an isolated `spikes/sqlite-node/vertical-slice.test.mjs` test using Node's built-in `node:sqlite`; no third-party dependency or production store replacement was introduced.
+- Implemented a checksummed schema migration and schema for Workspaces, Sessions, unique Session membership, operation receipts, and an ordered durable change log.
+- Exercised Session creation, Workspace attachment, operation receipt, and change-log insertion in one `BEGIN IMMEDIATE` transaction.
+- Added idempotent operation-ID retry behavior, foreign-key rollback verification, unique Session-membership enforcement, and close/reopen durable-sequence verification.
+- Wired the spike into the existing `pnpm run test` script so the Ubuntu, Windows, and macOS CI matrix executes it.
+- Added `docs/research/SQLITE-VERTICAL-SLICE.md` and indexed it in the documentation hub.
+
+### Verification and limitations
+- The latest CI run before this spike, [45897862903](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45897862903), passed on the existing main commit; it does not include the new spike.
+- The new commit's CI must complete before calling this spike verified.
+- This is a contract smoke test, not a performance benchmark or a production persistence implementation. Commit-ambiguity/crash injection, concurrency, backup/restore, Node event-loop delay, and Rust/Tauri comparison remain open.
+- No SQLite dependency was added; the pnpm lockfile remains a separate reproducibility blocker for third-party native bindings.
+
