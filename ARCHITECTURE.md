@@ -139,7 +139,7 @@ An isolated Node 22 node:sqlite vertical slice currently verifies:
 - recovery from a lost COMMIT acknowledgement by reopening and querying the operation receipt;
 - two-process writer contention, WAL reader/writer behavior, checkpoint behavior, and VACUUM INTO backup/restore smoke tests.
 
-This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses exist, but the manual benchmark workflow has not been dispatched and no benchmark result has been accepted. SQLite remains an evaluation candidate; JSON remains the active production prototype store.
+This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses and a manual Ubuntu/Windows/macOS GitHub Actions matrix workflow exist. The workflow runs repeated Node sync, Node worker-thread, and Rust transactions with WAL + synchronous=FULL, then emits per-OS JSON results and a summary. No benchmark run has yet been accepted; inspect all artifacts and compare only within the same OS/workload before deciding. SQLite remains an evaluation candidate; JSON remains the active production prototype store.
 
 ### Normative transaction coordinator contract
 1. Validate: normalize input and check domain invariants.
@@ -158,7 +158,7 @@ Commit outcomes must distinguish not committed, committed, and unknown. For an u
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
 - Rust rusqlite/SQLx under Tauri: narrow native host adapter candidate; avoid duplicating domain rules or exposing SQL to renderer.
 - Tauri SQL plugin guest API is not an acceptable direct renderer database boundary.
-No binding has been selected. Complete the pnpm lockfile bootstrap and Rust Cargo lock/toolchain bootstrap, dispatch benchmarks, inspect artifacts, then record the decision in a new ADR.
+No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Dispatch the benchmark matrix, inspect JSON and summary artifacts, then record the evidence-based decision in a new ADR.
 
 ## 7. Plugin and extension architecture
 
@@ -246,7 +246,7 @@ Public Workspace contract and selected implementation/tests were studied. Key ob
 - Transactional persistence: SQLite is the preferred candidate for atomic multi-record operations and durable change sequence, but binding/runtime and packaging remain unselected. JSON remains active until migration acceptance tests pass.
 
 ### Dependency reproducibility
-packageManager is pinned to pnpm 10.0.0, but pnpm-lock.yaml has not yet been generated. A manual workflow creates a reviewable PR; it has not been dispatched. A manual Rust bootstrap workflow is intended to generate Cargo.lock and an exact Rust toolchain pin; it has not been dispatched. CI must move to frozen/locked installs after reviewed lockfiles are merged.
+packageManager is pinned to pnpm 10.0.0 and pnpm-lock.yaml is merged (PR #1). The Rust benchmark has Cargo.lock and an exact 1.100.0 toolchain pin (PR #2). The Rust check uses the committed lockfile; the main Node CI should next adopt pnpm install --frozen-lockfile and dependency caching.
 
 ## 12. Open decisions and explicit non-goals
 
