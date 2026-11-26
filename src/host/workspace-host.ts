@@ -36,10 +36,13 @@ function snapshotMessage(state: WorkspaceRegistrySnapshot): WorkspaceFeedMessage
 export class RegistryWorkspaceHost implements WorkspaceHost {
   readonly #registry: WorkspaceRegistry;
   readonly #sessions: SessionRegistry;
+  readonly #journal: SessionCreationJournal;
+  #creationTail: Promise<void> = Promise.resolve();
 
-  constructor(registry: WorkspaceRegistry, sessions: SessionRegistry) {
+  constructor(registry: WorkspaceRegistry, sessions: SessionRegistry, journal: SessionCreationJournal) {
     this.#registry = registry;
     this.#sessions = sessions;
+    this.#journal = journal;
   }
 
   list(): readonly Workspace[] {
