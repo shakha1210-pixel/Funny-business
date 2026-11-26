@@ -13,8 +13,12 @@ Exercise the minimum transactional contract against the Node.js 22 built-in `nod
 - Defines Workspace, Session, unique Session membership, operation receipts, and an ordered durable change log.
 - Creates a Session, attaches it to a Workspace, records an operation receipt, and appends a change event in one `BEGIN IMMEDIATE` transaction.
 - Retries the same operation ID and returns the original receipt instead of writing duplicate rows.
-- Forces a foreign-key failure and verifies all writes in the transaction roll back.
-- Verifies the unique Session-membership constraint.
+- Forces a foreign-key failure and injected failures after each pre-commit write; every case must roll back all domain, membership, receipt, and change-log rows.
+- Verifies the unique Session-membership constraint and rejects reuse of an operation ID with a different Session payload.
+- Kills a child process before COMMIT and verifies SQLite recovery exposes no partial rows.
+- Kills a child process immediately after COMMIT but before notification; restart finds the durable receipt/change log and an operation retry does not duplicate data.
+- Simulates a lost COMMIT acknowledgement after the database committed, closes the connection, reopens the file, and resolves the outcome from the original operation receipt.
+- Simulates a failure before COMMIT, verifies the receipt is absent after reopen, and retries with the same operation ID.
 - Closes and reopens the database, then reads the durable operation receipt, migration checksum, and change sequence.
 
 The test is wired into the existing `pnpm run test` command, so the repository's Ubuntu, Windows, and macOS CI matrix runs it using the configured Node 22 runtime.
@@ -22,14 +26,15 @@ The test is wired into the existing `pnpm run test` command, so the repository's
 ## What this does not prove
 
 - It does not benchmark latency, event-loop blocking, startup, memory, packaging, or installer size.
-- It does not establish crash/power-loss durability guarantees or test commit-outcome ambiguity.
+- Process-kill tests exercise SQLite process-crash recovery on CI; they are not power-loss, storage-controller, or filesystem fault tests and do not establish universal durability guarantees.
+- Commit ambiguity is simulated at the adapter boundary; no real device I/O error or torn-write fault is induced.
 - It does not test concurrent processes, busy-lock contention, WAL backup/restore, migrations beyond the first version, or long-running readers.
 - It does not evaluate Node worker-thread ownership or a Rust/Tauri host implementation.
 - It does not replace the current JSON Workspace/Session stores or alter the host's production persistence path.
 
 ## Evaluation gates still open
 
-1. Add failure-injection around commit ambiguity and restart recovery.
+1. Add real adapter-level concurrency/busy-timeout tests and migration-upgrade/downgrade policy tests.
 2. Measure realistic metadata transaction latency and event-loop delay.
 3. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
 4. Complete packaging, backup/restore, platform/architecture, and dependency provenance review.
