@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createUiServer, listenUiServer } from "./server.js";
+import { WorkspaceRegistry, type Workspace } from "../core/workspace-registry.js";
 
 test("serves only allowlisted local UI assets and health endpoint", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-ui-"));
@@ -33,11 +34,10 @@ test("serves only allowlisted local UI assets and health endpoint", async () => 
 
 test("exposes Workspace list, create, rename, and unregister through the host API", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-api-"));
-  const { WorkspaceRegistry } = await import("../core/workspace-registry.js");
-  const store = {
+  const store: { items: readonly Workspace[]; load(): Promise<readonly Workspace[]>; save(items: readonly Workspace[]): Promise<void> } = {
     items: [],
     async load() { return this.items; },
-    async save(items: typeof this.items) { this.items = structuredClone(items); },
+    async save(items) { this.items = structuredClone(items); },
   };
   const registry = new WorkspaceRegistry({
     store,
