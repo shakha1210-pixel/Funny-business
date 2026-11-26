@@ -132,7 +132,15 @@ async function handleWorkspaceApi(
     const workspaceFiles = pathname.match(/^\/api\/workspaces\/([^/]+)\/files$/);
     if (workspaceFiles && method === "GET") {
       const workspaceId = decodeURIComponent(workspaceFiles[1]!);
-      sendJson(response, 200, { entries: await registry.listFiles(workspaceId, searchParams.get("path") ?? "") });
+      const limitValue = searchParams.get("limit");
+      const limit = limitValue === null ? undefined : Number(limitValue);
+      const listing = await registry.listFiles(
+        workspaceId,
+        searchParams.get("path") ?? "",
+        searchParams.get("cursor") ?? undefined,
+        limit,
+      );
+      sendJson(response, 200, listing);
       return;
     }
     const sessionEvents = pathname.match(/^\/api\/workspaces\/([^/]+)\/sessions\/events$/);
@@ -261,10 +269,10 @@ async function handleWorkspaceApi(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workspace operation failed";
     const status = /not found/i.test(message) ? 404 :
-      /already exists|collision|archived Session|version conflict|changed while opening|changed during read/i.test(message) ? 409 :
+      /already exists|collision|archived Session|version conflict|changed while opening|changed during read|Directory changed/i.test(message) ? 409 :
       /access denied/i.test(message) ? 403 :
       /read limit/i.test(message) ? 413 :
-      /required|cannot be empty|must be|valid JSON|configured limit|byte limit|relative slash|absolute paths|parent segment|escapes|Symbolic links|regular file|directory/i.test(message) ? 400 : 500;
+      /required|cannot be empty|must be|valid JSON|configured limit|byte limit|relative slash|absolute paths|parent segment|escapes|Symbolic links|regular file|directory|listing cursor|page limit/i.test(message) ? 400 : 500;
     if (response.headersSent) {
       response.destroy();
       return;
