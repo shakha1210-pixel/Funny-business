@@ -315,3 +315,31 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Build the first Tauri shell vertical slice and decide how the TypeScript host is packaged and supervised.
 3. Add an OS-native directory picker behind a narrow host capability.
 4. Measure idle resource use and cold startup before setting numeric budgets.
+
+
+## 2026-11-27 — Workspace host adapter boundary
+
+### Completed
+- Added the transport-neutral `WorkspaceHost` capability contract and `RegistryWorkspaceHost` adapter.
+- Changed the loopback HTTP server to depend on the host contract rather than the concrete WorkspaceRegistry implementation.
+- Composed application startup through the registry adapter, keeping domain rules out of the transport layer.
+- Added an adapter contract test covering list, create, rename, and unregister behavior.
+- Added the new host test to the package test script.
+- Updated architecture and roadmap to record the shared host boundary and the remaining state-feed/desktop work.
+
+### Verification
+- The preceding diagnostics change passed GitHub Actions run [45889505687](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45889505687) on Ubuntu, macOS, and Windows.
+- The host-adapter commits are newer than that run; their typecheck, tests, and build have not yet been verified by CI.
+- No local checkout/build was run in this environment.
+
+### Not done
+- No Tauri shell, native folder picker, or desktop package exists yet.
+- No reconnect-safe state feed or Session persistence exists yet.
+- The browser transport still uses the current loopback HTTP server; the host contract is the seam for a future Tauri transport.
+
+### Next actions
+1. Verify the host-adapter change in the cross-platform CI matrix.
+2. Add contract-level tests that can be reused by desktop and browser adapters.
+3. Implement a reconnect-safe Workspace snapshot/event feed with bounded queues and cancellation.
+4. Add Session domain and persistence, then selected-Workspace UI state.
+5. Build the first Tauri shell and native folder picker against narrow host capabilities.
