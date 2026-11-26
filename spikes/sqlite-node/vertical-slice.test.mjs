@@ -88,10 +88,13 @@ function openDatabase(filename) {
 
 function createSessionAtomically(db, input, { afterStep, commit = () => db.exec('COMMIT') } = {}) {
   const prior = db.prepare(
-    'SELECT session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
+    'SELECT operation_kind, session_id, change_sequence FROM operation_receipts WHERE operation_id = ?',
   ).get(input.operationId);
 
   if (prior) {
+    if (prior.operation_kind !== 'session.create' || prior.session_id !== input.sessionId) {
+      throw new Error('Idempotency key reused with a different operation payload');
+    }
     return {
       sessionId: prior.session_id,
       changeSequence: prior.change_sequence,
@@ -385,4 +388,58 @@ test('lost COMMIT acknowledgement is resolved by reopening and reading the origi
     changeSequence: 1,
     replayed: true,
   });
+});
+
+
+test('reusing an operation ID for a different Session is rejected', async (t) => {
+  const { db } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-idem', '/idem');
+  const base = {
+    operationId: 'op-idempotency-conflict',
+    workspaceId: 'w-idem',
+    sessionId: 's-original',
+    cwd: '/idem',
+    createdAt: '2026-11-27T00:00:00.000Z',
+  };
+  createSessionAtomically(db, base);
+
+  assert.throws(() => createSessionAtomically(db, {
+    ...base,
+    sessionId: 's-substituted',
+  }), /different operation payload/);
+  assert.equal(db.prepare('SELECT count(*) AS count FROM sessions').get().count, 1);
+  assert.equal(db.prepare('SELECT count(*) AS count FROM change_log').get().count, 1);
+});
+
+test('a COMMIT failure before durable commit is confirmed absent after reopen and may be retried with the same ID', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.prepare('INSERT INTO workspaces(id, canonical_path) VALUES (?, ?)').run('w-not-committed', '/not-committed');
+  const input = {
+    operationId: 'op-not-committed',
+    workspaceId: 'w-not-committed',
+    sessionId: 's-not-committed',
+    cwd: '/not-committed',
+    createdAt: '2026-11-27T00:00:00.000Z',
+  };
+
+  assert.throws(() => createSessionAtomically(db, input, {
+    commit() {
+      throw new Error('simulated failure before COMMIT');
+    },
+  }), /failure before COMMIT/);
+
+  db.close();
+  const recovered = openDatabase(filename);
+  registerDatabase(recovered);
+  assert.equal(recovered.prepare(
+    'SELECT count(*) AS count FROM operation_receipts WHERE operation_id = ?',
+  ).get(input.operationId).count, 0);
+
+  const retry = createSessionAtomically(recovered, input);
+  assert.deepEqual(retry, {
+    sessionId: input.sessionId,
+    changeSequence: 1,
+    replayed: false,
+  });
+  assert.equal(recovered.prepare('SELECT count(*) AS count FROM sessions').get().count, 1);
 });
