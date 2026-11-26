@@ -668,5 +668,7 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification and limitations
 - Verified GitHub Actions run [45902344483](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902344483): the complete install, typecheck, test, and build jobs passed on Ubuntu, Windows, and macOS.
 - This is a bounded local-filesystem smoke test, not a fairness/starvation or sustained-throughput benchmark. Network filesystems and multi-host writers remain out of scope.
-- WAL checkpoint, backup/restore, long-running reader pressure, and crash during backup remain future tests.
+- Added a WAL checkpoint test proving a long-lived reader pins the checkpoint and releasing its snapshot allows `TRUNCATE` checkpoint completion.
+- Added a controlled `VACUUM INTO` backup and copy/restore test; the restored database retains committed rows and foreign-key enforcement.
+- Backup interruption/corruption, encryption, retention, and sustained load remain future tests.
 - No production store, journal-mode default, or runtime ownership decision has changed.
