@@ -376,3 +376,108 @@ The Host controller tests cover concurrent path adoption, stable error mapping, 
 - Filesystem policy/local backend and symlink containment/stale-write tests remain to be inspected.
 - UI workspace picker/tree state and async race tests remain to be inspected.
 - No Funny Business Workspace implementation or ADR has been created.
+
+
+## 15. Filesystem capability, local provider, and sandbox review (2026-11-27)
+
+### Source files inspected
+
+- `packages/fs/fs/src/index.ts`, `types.ts`, `errno.ts`
+- `packages/fs/fs-local/src/index.ts`, `fsio.ts`, `win32.ts`
+- `packages/fs/fs-sandbox/src/index.ts`, `containment.ts`
+- `packages/fs/fs-observation-policy/src/index.ts`, `types.ts`
+- Provider, sandbox, containment, and observation-policy test suites
+
+### Confirmed architecture
+
+The upstream filesystem is split into four independent responsibilities:
+
+1. **Contract (`dsh-fs`)** — backend-neutral service API, opaque target/version tokens, typed errors, bounded reads and mutation outcomes.
+2. **Provider (`dsh-fs-local`)** — host disk path resolution, metadata, reads, directory listing, watch, and atomic mutations.
+3. **Confinement adapter (`dsh-fs-sandbox`)** — per-call write/edit/patch/delete/move policy fence over the local provider.
+4. **Observation policy (`dsh-fs-observation-policy`)** — optional per-agent prior-observation tracking and compare-and-swap intent decisions.
+
+The model-facing tools are another consumer, not the filesystem provider itself. The sandbox filesystem fence is explicitly documented as trusted-code path containment, not a kernel boundary for arbitrary process execution.
+
+### Path identity and symlinks
+
+- Existing paths resolve to a realpath-derived opaque target key. Different symlink aliases to the same target therefore share identity and mutation locks.
+- For missing targets, the resolver realpaths the nearest existing ancestor and appends the missing suffix. This preserves target identity when missing intermediate directories are later created, including under symlinked ancestors.
+- Display path and target identity are distinct: display spelling is retained for user-facing output; I/O uses the resolved target key.
+- `lstat` is a separate no-follow primitive. `resolve` intentionally follows symlinks; callers that reject a symlink at the final path entry must inspect it with `lstat` first.
+- Workspace containment is checked against canonical targets. The sandbox adapter re-resolves the target immediately before mutation and mutates that fresh identity, catching an ancestor symlink swapped after initial resolution.
+- Containment uses a lexical fast path, then filesystem device/inode identity walking for aliases such as Windows case/8.3 path spellings.
+- The source explicitly accepts a residual resolve-to-syscall TOCTOU window for this trusted path-fence threat model. It does not claim to isolate hostile host processes.
+
+### Freshness and safe mutation
+
+- Local version tokens combine device, inode, size, nanosecond mtime, and nanosecond ctime. They are opaque to consumers.
+- Per-target FIFO locks serialize read → version-check → edit/write critical sections inside one process. Multi-target move locks are acquired in lexical key order to avoid deadlocks.
+- The lock is process-local, not a cross-process mutex. Optional version guards detect many external changes, but correctness still depends on filesystem metadata changing reliably.
+- Writes use an exclusive owner-only staging directory and temporary file beside the destination, fsync the staged file, then atomically publish. Existing POSIX mode is preserved; Windows replacement preserves the destination DACL.
+- Guarded create uses no-replace hard-link publication so a concurrent creator cannot be overwritten after the initial existence probe.
+- Read-before-edit policy distinguishes unseen, confirmed-absent, and confirmed-present observations. Per-agent weakly-held state prevents one agent's read from authorizing another agent's edit.
+- The provider performs the atomic freshness check; the optional policy plugin chooses the intent. Without the policy plugin, provider mutations can be unconditional.
+
+### Bounds, typed failures, and partial effects
+
+- Raw byte reads require a maximum byte count and fail on overflow rather than silently truncating.
+- Directory listing is one level and metadata-only; it does not read file contents.
+- UTF-8 text paths reject binary/invalid UTF-8. Large text can stream; edit/write diff bases are bounded.
+- Filesystem errors have stable codes rather than requiring callers to parse message strings.
+- A move is explicitly two effects: destination publication can succeed while source removal fails. The outcome reports this partial state instead of pretending the operation was transactional.
+- Watchers have explicit initialization cancellation and an asynchronous close handle.
+
+### Test coverage observed
+
+The reviewed tests cover alias identity, symlink writes, missing-path resolution, parent symlink identity, stale same-size rewrites, concurrent guarded writes/edits, write-vs-edit races, binary/invalid UTF-8, bounded reads, atomic staging cleanup, no-clobber publication, Windows DACL behavior, symlink escape denial, symlink swaps, containment aliases, and policy ownership isolation.
+
+### Funny Business design implications
+
+1. Our first implementation should define a backend-neutral filesystem contract before choosing Node's local provider details.
+2. A Workspace root is not itself a permission grant. Introduce explicit access grants and a separate execution sandbox policy.
+3. Represent file targets and versions as opaque values. Never let plugins or the model construct or parse them.
+4. Use no-follow metadata when repository policy needs to reject symlinks; canonicalize before every protected mutation.
+5. Do not claim a path-checking wrapper is equivalent to OS sandboxing. Arbitrary code execution requires a real OS/container/VM boundary.
+6. Use bounded reads, typed errors, atomic publication, and stale-write guards from the start.
+7. Treat multi-file operations as potentially partial unless a true transactional primitive exists; return explicit per-effect outcomes.
+8. Test same-path aliases, symlink escapes, missing intermediate directories, concurrent writers, external edits, and Windows path semantics.
+
+### Scope and remaining gaps
+
+- This is a source review of selected filesystem contracts/providers/policies and their tests, not a security audit or proof of race-free isolation.
+- UI workspace tree and picker were sampled for state-projection and interaction contracts; full UI component/test coverage remains out of scope.
+- No upstream code copied. No Funny Business filesystem implementation has been started.
+
+
+## 16. Workspace browser and directory-picker UI review (2026-11-27)
+
+### Source files inspected
+
+- `packages/client/ui-workspace/src/client/tree.ts`
+- `packages/client/ui-workspace/src/client/WorkspacePicker.tsx`
+- `packages/api/workspace-controller/src/directory-picker.ts`
+- Workspace UI and directory-picker test files (selected)
+
+### Confirmed presentation contracts
+
+- The browser tree is a derived projection over authoritative Workspace membership and Session summaries; it does not own Workspace lifecycle.
+- Group order follows the caller's Workspace order. Session order can be manual or recency-based; unassigned Sessions have a separate browser-local order.
+- Archived and pinned state is global registry state, while row visibility and some ordering preferences are client projections.
+- Search uses a merged/bounded search result projection; blank provisional Sessions are treated specially and excluded from normal title search.
+- The picker keeps directory selection as a separate capability seam. It can be absent; in that composition the UI withdraws the add action instead of presenting a nonfunctional control.
+- The picker prevents overlapping pick/adopt interactions, handles late capability disappearance, reports adoption failures, and only auto-opens the add flow once the Workspace baseline has settled.
+- The Host directory-picker controller exposes separate native chooser and browse capabilities. It refuses unsupported verbs rather than approximating them, validates new child names as a single path segment, and maps cancellation/business failures to stable Remote errors.
+
+### Funny Business implications
+
+- Keep domain truth on the host; build tree/search/flat-list as disposable projections.
+- Separate OS-native directory chooser from in-app browse/list/create capabilities.
+- UI must represent loading, capability unavailable, cancellation, and adoption failure explicitly.
+- Preserve user order separately from recency sorting and authoritative membership.
+- Do not make the first Workspace implementation depend on a graphical picker; a typed path adoption API can exist before UI.
+
+### Remaining gaps
+
+- The tree and picker UI were sampled, not fully audited across every component and test.
+- No Funny Business Workspace UI or directory-picker code has been started.
