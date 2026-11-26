@@ -26,9 +26,13 @@ class MemorySessionStore implements SessionStore {
 
 class MemorySessionCreationJournal implements SessionCreationJournal {
   pending: PendingSessionCreation | undefined;
+  failNextClear = false;
   async load() { return this.pending; }
   async save(entry: PendingSessionCreation) { this.pending = structuredClone(entry); }
-  async clear() {\n    if (this.failNextClear) { this.failNextClear = false; throw new Error("journal cleanup unavailable"); }\n    this.pending = undefined;\n  }
+  async clear() {
+    if (this.failNextClear) { this.failNextClear = false; throw new Error("journal cleanup unavailable"); }
+    this.pending = undefined;
+  }
 }
 
 async function createHost() {
