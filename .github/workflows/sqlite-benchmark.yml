@@ -37,7 +37,7 @@ jobs:
       - name: Run Rust rusqlite benchmark
         shell: bash
         working-directory: spikes/sqlite-benchmark/rust
-        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee ../../benchmark-results/rust.json
+        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee ../../../benchmark-results/rust.json
       - uses: actions/upload-artifact@v4
         with:
           name: sqlite-benchmark-${{ matrix.os }}
