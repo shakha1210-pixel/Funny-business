@@ -84,13 +84,13 @@ test("exposes Workspace list, create, rename, and unregister through the host AP
 
 test("rejects cross-origin Workspace mutations", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-origin-"));
-  const { WorkspaceRegistry } = await import("../core/workspace-registry.js");
+  const store: { items: readonly Workspace[]; load(): Promise<readonly Workspace[]>; save(items: readonly Workspace[]): Promise<void> } = {
+    items: [],
+    async load() { return this.items; },
+    async save(items) { this.items = structuredClone(items); },
+  };
   const registry = new WorkspaceRegistry({
-    store: {
-      items: [] as Workspace[],
-      async load() { return this.items; },
-      async save(items: readonly Workspace[]) { this.items = structuredClone(items); },
-    },
+    store,
     sessions: { getHeader: async () => undefined },
     canonicalizeDirectory: async (path) => path,
   });
