@@ -78,4 +78,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Connect the UI prototype to authoritative Workspace host APIs and a reconnect-safe state feed; replace sample data with live Workspace, Session, Git, and agent state. Add a pnpm lockfile and restore dependency caching.
+Add a reconnect-safe Workspace state feed, Session domain/persistence, native folder-picker capability, and real selected-Workspace switching. Then implement the filesystem access-grant layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching.
