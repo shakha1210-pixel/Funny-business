@@ -666,7 +666,7 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Expanded the SQLite evaluation document and ADR-0003 acceptance criteria with multi-process serialization, bounded contention, WAL snapshot isolation, and future checkpoint/backup requirements.
 
 ### Verification and limitations
-- CI for the new concurrency commit is pending.
+- Verified GitHub Actions run [45902344483](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902344483): the complete install, typecheck, test, and build jobs passed on Ubuntu, Windows, and macOS.
 - This is a bounded local-filesystem smoke test, not a fairness/starvation or sustained-throughput benchmark. Network filesystems and multi-host writers remain out of scope.
 - WAL checkpoint, backup/restore, long-running reader pressure, and crash during backup remain future tests.
 - No production store, journal-mode default, or runtime ownership decision has changed.
