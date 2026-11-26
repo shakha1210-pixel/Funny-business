@@ -3,6 +3,7 @@ import test from "node:test";
 import { WorkspaceRegistry, type Workspace, type WorkspaceStore } from "../core/workspace-registry.js";
 import { SessionRegistry, type Session, type SessionStore } from "../core/session-registry.js";
 import { RegistryWorkspaceHost } from "./workspace-host.js";
+import type { PendingSessionCreation, SessionCreationJournal } from "../core/session-creation-journal.js";
 
 class MemoryWorkspaceStore implements WorkspaceStore {
   #items: readonly Workspace[] = [];
@@ -23,11 +24,11 @@ class MemorySessionStore implements SessionStore {
   async save(items: readonly Session[]) { this.#items = structuredClone(items); }
 }
 
-async function createHost() {
+class MemorySessionCreationJournal implements SessionCreationJournal {\n  pending: PendingSessionCreation | undefined;\n  async load() { return this.pending; }\n  async save(entry: PendingSessionCreation) { this.pending = structuredClone(entry); }\n  async clear() { this.pending = undefined; }\n}\n\nasync function createHost() {
   let workspaceId = 0;
   let sessionId = 0;
   const workspaceStore = new MemoryWorkspaceStore();
-  const sessionStore = new MemorySessionStore();
+  const sessionStore = new MemorySessionStore();\n  const journal = new MemorySessionCreationJournal();
   const sessions = new SessionRegistry({
     store: sessionStore,
     canonicalizeDirectory: async (path) => path,
@@ -43,7 +44,7 @@ async function createHost() {
     now: () => 123,
   });
   await registry.initialize();
-  return { registry, sessions, workspaceStore, sessionStore, host: new RegistryWorkspaceHost(registry, sessions) };
+  return { registry, sessions, workspaceStore, sessionStore, journal, host: new RegistryWorkspaceHost(registry, sessions, journal) };
 }
 
 test("registry adapter exposes the shared Workspace host contract", async () => {
@@ -138,4 +139,50 @@ test("Workspace watch cancellation releases a pending iterator read", async () =
   const result = await pending;
   assert.equal(result.done, true);
   await host.create("/after-cancel", "After cancel");
+});
+
+test("startup recovery discards a Session persisted before its Workspace attachment", async () => {
+  const { host, registry, sessions, journal } = await createHost();
+  const workspace = await host.create("/recovery", "Recovery");
+  const session = await sessions.create(workspace.path, "Interrupted", "recovery-session");
+  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: session.id });
+
+  await host.recoverPendingSessionCreation();
+  assert.equal(sessions.get(session.id), undefined);
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, []);
+  assert.equal(await journal.load(), undefined);
+});
+
+test("startup recovery preserves an already attached Session", async () => {
+  const { host, registry, sessions, journal } = await createHost();
+  const workspace = await host.create("/committed", "Committed");
+  const session = await sessions.create(workspace.path, "Committed", "committed-session");
+  await registry.attachSession(workspace.id, session.id);
+  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: session.id });
+
+  await host.recoverPendingSessionCreation();
+  assert.equal(sessions.get(session.id)?.title, "Committed");
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, [session.id]);
+  assert.equal(await journal.load(), undefined);
+});
+
+test("startup recovery preserves orphan Sessions when their Workspace was unregistered", async () => {
+  const { host, registry, sessions, journal } = await createHost();
+  const workspace = await host.create("/orphan-safe", "Orphan safe");
+  const session = await sessions.create(workspace.path, "Keep me", "preserve-session");
+  await registry.attachSession(workspace.id, session.id);
+  await registry.unregister(workspace.id);
+  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: session.id });
+
+  await host.recoverPendingSessionCreation();
+  assert.equal(sessions.get(session.id)?.title, "Keep me");
+  assert.equal(await journal.load(), undefined);
+});
+
+test("startup recovery fails closed if a Workspace references a missing Session", async () => {
+  const { host, registry, journal } = await createHost();
+  const workspace = await host.create("/broken", "Broken");
+  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: "missing-session" });
+  await assert.rejects(host.recoverPendingSessionCreation(), /without its Session/);
+  assert.notEqual(await journal.load(), undefined);
 });
