@@ -61,6 +61,12 @@
           <div class="welcome-actions"><button class="secondary-button" id="open-project">Open project <span>↗</span></button><button class="primary-button" id="start-task">＋ Start a task</button></div>
         </div>
 
+        <section class="filesystem-section">
+          <div class="section-heading"><div><h2>Project files</h2><p>Explicitly granted, read-only Workspace access</p></div><div id="filesystem-actions"><button class="secondary-button small" id="grant-files">Grant read-only access</button></div></div>
+          <div class="file-browser" id="file-browser"><p class="file-browser-empty">Select a Workspace to inspect its files. Access is denied until you grant it.</p></div>
+          <pre class="file-preview" id="file-preview" hidden></pre>
+        </section>
+
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-top"><span>ACTIVE PROJECT</span><span class="stat-icon purple">▣</span></div><div class="stat-value">Funny-business</div><div class="stat-caption"><span class="status-dot"></span> Connected · local repository</div></article>
           <article class="stat-card"><div class="stat-top"><span>GIT STATUS</span><span class="stat-icon green">⑂</span></div><div class="stat-value">main <span class="branch-count">↑ 0 ↓ 0</span></div><div class="stat-caption">Working tree clean</div></article>
