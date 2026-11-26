@@ -231,6 +231,8 @@ test("requires explicit grants for bounded Workspace file listing and reading", 
     assert.equal(grantResponse.status, 201);
     const grantBody = await grantResponse.json() as { grant: { id: string } };
 
+    const invalidPage = await fetch(base + `/api/workspaces/${workspace.id}/files?limit=0`);
+    assert.equal(invalidPage.status, 400);
     const listing = await fetch(base + `/api/workspaces/${workspace.id}/files?limit=1`);
     assert.equal(listing.status, 200);
     const listingBody = await listing.json() as { entries: Array<{ name: string; version?: string }>; nextCursor?: string };
