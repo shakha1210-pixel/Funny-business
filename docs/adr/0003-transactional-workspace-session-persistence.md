@@ -108,6 +108,10 @@ Out of scope for the first local-first release. A future remote provider must pr
 - A lost COMMIT acknowledgement is resolved only after reopening and querying the original operation receipt; an unresolved outcome fails closed.
 - Reusing an operation ID with a different operation payload is rejected.
 - A Session cannot belong to multiple Workspaces.
+- Independent writer processes serialize through SQLite's write lock; a configured `busy_timeout` bounds lock waiting and surfaces `SQLITE_BUSY` rather than silently dropping writes.
+- Under WAL, readers see a consistent committed snapshot while a writer is active and never observe uncommitted rows.
+- Concurrent independent writers either commit in serialized order or return a bounded busy error; no committed row is lost.
+- WAL checkpoint and backup/restore behavior is verified with active readers and across supported operating systems.
 - Workspace unregister preserves Session records and their conversation data.
 - Failed transactions publish no in-memory events.
 - Committed transactions publish exactly one ordered logical change set.
