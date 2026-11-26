@@ -855,3 +855,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added a regression test for stale grant cleanup and invalid API page sizes.
 
 - Pagination cursors are now bound to a hash of the target directory as well as its metadata version, preventing cursor reuse against a different directory without disclosing its absolute path.
+
+
+### Cross-platform verification checkpoint
+- GitHub Actions run [45908355746](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45908355746) passed on Ubuntu, Windows, and macOS with directory-bound cursor reuse tests and the current pagination implementation.
+- GitHub Actions run [45908291287](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45908291287) passed on all three OS after HTTP error mapping and page-size validation hardening.
+- Earlier pagination test failures were test expectation/type-contract issues; the corrected suite now passes. No local build/test was run in this environment.
