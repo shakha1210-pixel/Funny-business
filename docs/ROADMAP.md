@@ -25,7 +25,8 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Atomic JSON snapshot persistence adapters; Session-create recovery journal implemented, while cross-process coordination and schema migrations remain open.
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
-- [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
+- [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle.
+- [x] Durable per-Session user-message history, bounded append API, and browser conversation view (assistant/model execution remains future work).
 - [x] Revisioned Session feed with atomic baseline, bounded overflow resynchronization, cancellation, loopback SSE transport, and live browser Session navigation.
 - [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation.
 - [x] Fail-closed cross-process single-host guard acquired before loading persistent registries (crash-stale locks require verified manual cleanup; kernel-managed auto-release remains future work).
@@ -39,7 +40,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [ ] Backup and restore.
 
 ## Phase 3 — Agent runtime and Model Hub
-- [ ] Agent conversation history, task/run model, and tool registry.
+- [ ] Agent task/run lifecycle, assistant/tool message types, and tool registry (user-message history is implemented).
 - [ ] Permission broker.
 - [ ] Hosted model adapter.
 - [ ] Ollama and llama.cpp adapters.
@@ -88,4 +89,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Continue the [storage coordination study](research/STORAGE-COORDINATION.md): validate the guard on supported local filesystems and decide whether the desktop host should provide a kernel-managed lock or the application should move to a transactional shared store. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
+Finish dependency reproducibility by running the Cargo lockfile bootstrap workflow and reviewing its PR; the first attempt exposed and fixed a TOML newline-generation bug. Then continue the [storage coordination study](research/STORAGE-COORDINATION.md): validate the guard on supported local filesystems and decide whether the desktop host should provide a kernel-managed lock or the application should move to a transactional shared store. Add and commit the pnpm lockfile, then restore dependency caching. Define filesystem access grants and safe, bounded read/list operations before exposing a file browser. The desktop milestone remains a Tauri vertical slice against the same host contract.
