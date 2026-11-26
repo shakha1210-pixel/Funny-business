@@ -15,9 +15,9 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 ## Phase 1 — Minimal cross-platform core
 - [x] Bootstrap repository documentation.
 - [x] Add TypeScript project manifest and compiler configuration.
-- [ ] Implement plugin lifecycle and service registry.
+- [x] Implement initial plugin lifecycle and service registry (hardening remains).
 - [ ] Add event bus, config, logging, and health checks.
-- [ ] Add tests and CI for Linux, Windows, and macOS.
+- [x] Add initial tests and cross-platform CI for Linux, Windows, and macOS.
 
 ## Phase 2 — Workspace and repositories
 - [ ] Workspace registry and safe file operations.
@@ -74,4 +74,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Map DeepSeek Harness plugin lifecycle, Cordis service registration, bundles/profiles, tool execution, LLM adapters, persistence, and sandbox/approval policy. Then implement and test our own minimal plugin kernel.
+Harden the existing plugin lifecycle (concurrency, idempotent disposal, failure visibility) and add a committed pnpm lockfile. Then define the independent Workspace domain and UI behavior from the reverse-engineering findings.
