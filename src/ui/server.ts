@@ -134,6 +134,23 @@ async function handleWorkspaceApi(
       sendJson(response, 201, { session });
       return;
     }
+    const sessionMessages = pathname.match(/^\/api\/sessions\/([^/]+)\/messages$/);
+    if (sessionMessages && method === "GET") {
+      const sessionId = decodeURIComponent(sessionMessages[1]!);
+      sendJson(response, 200, { messages: await registry.listMessages(sessionId) });
+      return;
+    }
+    if (sessionMessages && method === "POST") {
+      const sessionId = decodeURIComponent(sessionMessages[1]!);
+      const body = await readJson(request);
+      if (typeof body.content !== "string") {
+        sendJson(response, 400, { error: "content must be a string" });
+        return;
+      }
+      const message = await registry.appendUserMessage(sessionId, body.content);
+      sendJson(response, 201, { message });
+      return;
+    }
     const sessionMatch = pathname.match(/^\/api\/sessions\/([^/]+)$/);
     if (sessionMatch && method === "PATCH") {
       const sessionId = decodeURIComponent(sessionMatch[1]!);
