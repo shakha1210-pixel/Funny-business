@@ -50,7 +50,7 @@ Supported options:
 - `journal`: `WAL` or `DELETE`.
 - `synchronous`: `FULL` or `NORMAL`.
 
-The manual GitHub Actions workflow runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS and uploads machine-readable JSON results per OS:
+The manual GitHub Actions workflow runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS. It repeats each adapter independently (default: five repetitions, configurable up to 20) and uploads one JSON result per adapter/repetition as OS-specific artifacts:
 [SQLite runtime benchmark workflow](../../.github/workflows/sqlite-benchmark.yml).
 
 ## Reported measurements
@@ -78,11 +78,11 @@ The Node synchronous event-loop figure is a timer-delay probe scheduled immediat
 
 - Harnesses, a focused Rust compile-check, and a manual three-OS benchmark workflow are committed.
 - The Rust compile-check passed its first CI run [45904796532](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45904796532). The Node harness now measures both main-thread blocking and worker-thread isolation; the updated manual workflow still needs to be run to produce comparable artifacts.
-- No benchmark result is recorded yet; the manual workflow must be run from GitHub Actions.
+- The workflow now defaults to five independent repetitions per adapter and OS, with separate JSON artifacts for each run. No benchmark result is recorded yet; the manual workflow must be run from GitHub Actions.
 - First verify compilation and output shape on all three OS.
 - Commit a generated Cargo.lock and pin the Rust toolchain after the first successful workflow run.
-- Run at least five repetitions per OS and compare median throughput and tail latency.
-- Run at least five repetitions per OS, then add a bounded concurrent-reader workload before choosing database thread ownership.
+- Run the manual workflow with five repetitions per OS and compare median throughput, p95/p99 latency, and run-to-run spread.
+- Add a bounded concurrent-reader workload before choosing database thread ownership.
 - Later compare a minimal Tauri Rust host against a Node sidecar; do not equate this adapter microbenchmark with the full desktop runtime decision.
 
 **Decision:** No binding or runtime selected. JSON remains the active application persistence implementation.
