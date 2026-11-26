@@ -81,7 +81,7 @@ Windows 10/11, macOS, and Linux are first-class targets. Credential storage, pro
 |---|---|---|
 | Core | TypeScript + Node.js | Chosen for prototype |
 | Plugin lifecycle | Small typed kernel; evaluate Cordis | Open |
-| Desktop shell | Tauri or Electron | Open |
+| Desktop shell | Tauri 2 preferred; benchmark vertical slice before acceptance | Proposed in ADR-0002 |
 | UI | React-based | Proposed |
 | State | SQLite | Proposed |
 | Git | Git CLI | Proposed |
@@ -91,7 +91,7 @@ Windows 10/11, macOS, and Linux are first-class targets. Credential storage, pro
 
 ## Open decisions
 - Cordis adoption versus an independent minimal plugin kernel.
-- Tauri versus Electron.
+- TypeScript sidecar versus a narrower Rust host/core split (benchmark in ADR-0002).
 - Plugin isolation on each operating system.
 - Credential vault abstraction.
 - Notebook provider sequence after local Jupyter.
