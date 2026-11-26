@@ -100,11 +100,33 @@ export class WorkspaceRegistry {
       const loaded = await this.#store.load();
       const next = new Map<string, Workspace>();
       const paths = new Set<string>();
+      const attachedSessionIds = new Set<string>();
       for (const item of loaded) {
         const canonical = await this.#canonicalize(item.path);
         if (next.has(item.id)) throw new Error("Duplicate Workspace id: " + item.id);
         if (paths.has(canonical)) throw new Error("Duplicate Workspace path: " + canonical);
         paths.add(canonical);
+
+        const localSessionIds = new Set<string>();
+        for (const sessionId of item.sessionIds) {
+          if (localSessionIds.has(sessionId)) {
+            throw new Error("Workspace contains duplicate Session id: " + sessionId);
+          }
+          if (attachedSessionIds.has(sessionId)) {
+            throw new Error("Session belongs to more than one Workspace: " + sessionId);
+          }
+          const header = await this.#sessions.getHeader(sessionId);
+          if (!header || header.id !== sessionId) {
+            throw new Error("Workspace references missing or invalid Session: " + sessionId);
+          }
+          const sessionPath = await this.#canonicalize(header.cwd);
+          if (sessionPath !== canonical) {
+            throw new Error("Persisted Session working directory does not match Workspace path: " + sessionId);
+          }
+          localSessionIds.add(sessionId);
+          attachedSessionIds.add(sessionId);
+        }
+
         next.set(item.id, { ...item, path: canonical, sessionIds: [...item.sessionIds] });
       }
       this.#items = next;
