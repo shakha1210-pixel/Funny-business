@@ -1,9 +1,7 @@
+import type { Session } from "../core/session-registry.js";
+import type { SessionRegistry } from "../core/session-registry.js";
 import type { Workspace, WorkspaceChange, WorkspaceRegistry, WorkspaceRegistrySnapshot } from "../core/workspace-registry.js";
 
-/**
- * Transport-neutral Workspace capability exposed by an application host.
- * Renderers depend on this contract, never on the registry or filesystem directly.
- */
 export interface WorkspaceFeedMessage {
   readonly type: "snapshot" | "change";
   readonly revision: number;
@@ -13,7 +11,6 @@ export interface WorkspaceFeedMessage {
 
 export interface WorkspaceWatchOptions {
   readonly signal?: AbortSignal;
-  /** Maximum queued incremental messages before replacing the queue with a full snapshot. */
   readonly maxQueue?: number;
 }
 
@@ -22,6 +19,10 @@ export interface WorkspaceHost {
   create(path: string, title?: string): Promise<Workspace>;
   rename(id: string, title: string): Promise<Workspace>;
   unregister(id: string): Promise<boolean>;
+  listSessions(workspaceId: string): readonly Session[];
+  createSession(workspaceId: string, title?: string): Promise<Session>;
+  renameSession(sessionId: string, title: string): Promise<Session>;
+  archiveSession(sessionId: string): Promise<Session>;
   watch(options?: WorkspaceWatchOptions): AsyncIterable<WorkspaceFeedMessage>;
 }
 
@@ -29,12 +30,14 @@ function snapshotMessage(state: WorkspaceRegistrySnapshot): WorkspaceFeedMessage
   return { type: "snapshot", revision: state.revision, workspaces: state.workspaces };
 }
 
-/** Adapts the domain registry to the host capability contract. */
+/** Adapts domain registries to the transport-neutral application host contract. */
 export class RegistryWorkspaceHost implements WorkspaceHost {
   readonly #registry: WorkspaceRegistry;
+  readonly #sessions: SessionRegistry;
 
-  constructor(registry: WorkspaceRegistry) {
+  constructor(registry: WorkspaceRegistry, sessions: SessionRegistry) {
     this.#registry = registry;
+    this.#sessions = sessions;
   }
 
   list(): readonly Workspace[] {
@@ -51,6 +54,41 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
 
   unregister(id: string): Promise<boolean> {
     return this.#registry.unregister(id);
+  }
+
+  listSessions(workspaceId: string): readonly Session[] {
+    const workspace = this.#registry.get(workspaceId);
+    if (!workspace) throw new Error("Workspace not found: " + workspaceId);
+    return workspace.sessionIds.map((id) => {
+      const session = this.#sessions.get(id);
+      if (!session) throw new Error("Workspace references missing Session: " + id);
+      return session;
+    });
+  }
+
+  async createSession(workspaceId: string, title?: string): Promise<Session> {
+    const workspace = this.#registry.get(workspaceId);
+    if (!workspace) throw new Error("Workspace not found: " + workspaceId);
+    const session = await this.#sessions.create(workspace.path, title);
+    try {
+      await this.#registry.attachSession(workspaceId, session.id);
+      return session;
+    } catch (error) {
+      try {
+        await this.#sessions.discard(session.id);
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Session creation failed and compensation could not be persisted");
+      }
+      throw error;
+    }
+  }
+
+  renameSession(sessionId: string, title: string): Promise<Session> {
+    return this.#sessions.rename(sessionId, title);
+  }
+
+  archiveSession(sessionId: string): Promise<Session> {
+    return this.#sessions.archive(sessionId);
   }
 
   async *watch(options: WorkspaceWatchOptions = {}): AsyncGenerator<WorkspaceFeedMessage> {
@@ -78,7 +116,6 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
       if (closed) return;
       const message: WorkspaceFeedMessage = { type: "change", revision: change.revision, change };
       if (queue.length >= maxQueue) {
-        // Never silently drop state: collapse backlog into a current authoritative replacement.
         queue.splice(0, queue.length, snapshotMessage(this.#registry.getSnapshot()));
       } else {
         queue.push(message);
@@ -88,7 +125,6 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
 
     const onAbort = () => close();
     options.signal?.addEventListener("abort", onAbort, { once: true });
-
     try {
       yield snapshotMessage(subscription.snapshot);
       while (!closed) {
