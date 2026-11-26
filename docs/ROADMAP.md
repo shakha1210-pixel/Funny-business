@@ -30,7 +30,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Revisioned Session feed with atomic baseline, bounded overflow resynchronization, cancellation, loopback SSE transport, and live browser Session navigation.
 - [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation.
 - [x] Fail-closed cross-process single-host guard acquired before loading persistent registries (crash-stale locks require verified manual cleanup; kernel-managed auto-release remains future work).
-- [ ] Safe filesystem access grants and file operations.
+- [x] Explicit persisted Workspace-root read/list grants, bounded file listing/reads, symlink rejection, and version tokens; writes and UI explorer remain future work.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
 - [x] Initial selected-Workspace switching and Session list/create/resume navigation in the browser UI.
@@ -89,4 +89,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Finish dependency reproducibility by running the Cargo lockfile bootstrap workflow and reviewing its PR; the first attempt exposed and fixed a TOML newline-generation bug. Then continue the [storage coordination study](research/STORAGE-COORDINATION.md): validate the guard on supported local filesystems and decide whether the desktop host should provide a kernel-managed lock or the application should move to a transactional shared store. Add and commit the pnpm lockfile, then restore dependency caching. Define filesystem access grants and safe, bounded read/list operations before exposing a file browser. The desktop milestone remains a Tauri vertical slice against the same host contract.
+Finish dependency reproducibility by running the Cargo lockfile bootstrap workflow and reviewing its PR; the first attempt exposed and fixed a TOML newline-generation bug. Then continue the [storage coordination study](research/STORAGE-COORDINATION.md): validate the guard on supported local filesystems and decide whether the desktop host should provide a kernel-managed lock or the application should move to a transactional shared store. Add and commit the pnpm lockfile, then restore dependency caching. Finish the filesystem milestone with a visible grant/revoke flow and paginated file explorer; keep writes deferred until atomic replacement, backups, and stale-version handling are designed. The desktop milestone remains a Tauri vertical slice against the same host contract.
