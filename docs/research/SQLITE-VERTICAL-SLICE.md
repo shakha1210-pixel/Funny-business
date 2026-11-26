@@ -1,6 +1,6 @@
 # Node.js SQLite Vertical Slice
 
-**Status:** Implemented as an isolated evaluation spike; not production persistence and not a binding selection.
+**Status:** Implemented and verified in the Ubuntu, Windows, and macOS CI matrix; not production persistence and not a binding selection.
 
 ## Purpose
 
@@ -29,10 +29,9 @@ The test is wired into the existing `pnpm run test` command, so the repository's
 
 ## Evaluation gates still open
 
-1. Verify the GitHub Actions result on all three OS runners; do not infer success from a commit.
-2. Add failure-injection around commit ambiguity and restart recovery.
-3. Measure realistic metadata transaction latency and event-loop delay.
-4. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
-5. Complete packaging, backup/restore, platform/architecture, and dependency provenance review.
+1. Add failure-injection around commit ambiguity and restart recovery.
+2. Measure realistic metadata transaction latency and event-loop delay.
+3. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
+4. Complete packaging, backup/restore, platform/architecture, and dependency provenance review.
 
-**Decision:** Node's built-in SQLite path has passed only the source-level implementation stage until CI confirms it. SQLite remains an evaluation candidate; JSON remains the active persistence implementation.
+**Verification:** GitHub Actions run [45898898484](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45898898484) passed install, typecheck, all tests, and build on Ubuntu, Windows, and macOS. The Windows run exposed an open-database-file cleanup issue; the test now closes every database handle before removing the temporary directory.\n\n**Decision:** The Node built-in SQLite path has passed this minimal transaction-contract smoke test on the three CI operating systems. It has not passed production durability, performance, packaging, or runtime-maturity gates. SQLite remains an evaluation candidate; JSON remains the active persistence implementation.
