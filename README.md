@@ -32,6 +32,7 @@ Start here:
 Research:
 - [DeepSeek Harness study](docs/research/DEEPSEEK-HARNESS.md)
 - [Workspace reverse engineering](docs/research/WORKSPACE-REVERSE-ENGINEERING.md)
+- [Storage coordination study](docs/research/STORAGE-COORDINATION.md)
 
 ## Development
 
