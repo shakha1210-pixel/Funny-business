@@ -117,3 +117,22 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Inspect filesystem policy/local backend and tests, focusing on symlink traversal, containment, and stale-write protection.
 3. Inspect UI picker/tree state and cancellation/race handling.
 4. Then write ADR-0001 for Funny Business Workspace boundaries and implement the smallest independently designed domain module.
+
+
+## 2026-11-27 — Workspace Host Controller review
+
+### Completed
+- Inspected the Workspace Controller Host implementation: command adapter, Remote service, feed producer, and browser-safe request/result types.
+- Inspected Host controller tests for command serialization, stable error mapping, baseline/increment feeds, permission filtering, reconnect, and disposal.
+- Recorded the controller findings and Funny Business implications in `docs/research/WORKSPACE-REVERSE-ENGINEERING.md`.
+
+### Confirmed findings
+- The registry remains the single authoritative Workspace owner; controller code adapts commands and transport types.
+- Reconnecting clients receive a complete baseline before incremental changes.
+- Stream access filtering is applied to both Workspace and Session identities.
+- Permission loss for a previously delivered Workspace triggers a filtered state replacement rather than a false deletion.
+- Remote errors have stable codes and structured details; unexpected internal failures propagate.
+
+### Not done
+- Filesystem policy/local backend and UI tree/picker implementation remain to be reviewed.
+- No Funny Business Workspace implementation or ADR yet.
