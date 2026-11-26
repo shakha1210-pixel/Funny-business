@@ -76,3 +76,40 @@ test("unregister removes only the Workspace record", async () => {
   assert.equal(registry.get(workspace.id), undefined);
   assert.deepEqual(store.items, []);
 });
+
+test("startup rejects persisted Workspace references to missing Sessions", async () => {
+  const store = new MemoryStore();
+  store.items = [{
+    id: "workspace-1",
+    path: "/work/project",
+    title: "Project",
+    createdAt: 1,
+    updatedAt: 1,
+    sessionIds: ["missing-session"],
+  }];
+  const registry = new WorkspaceRegistry({
+    store,
+    sessions: { getHeader: async () => undefined },
+    canonicalizeDirectory: canonicalize,
+  });
+  await assert.rejects(registry.initialize(), /missing or invalid Session/);
+  assert.throws(() => registry.list(), /initialize/);
+});
+
+test("startup rejects persisted Session membership with a mismatched working directory", async () => {
+  const store = new MemoryStore();
+  store.items = [{
+    id: "workspace-1",
+    path: "/work/project",
+    title: "Project",
+    createdAt: 1,
+    updatedAt: 1,
+    sessionIds: ["session-1"],
+  }];
+  const registry = new WorkspaceRegistry({
+    store,
+    sessions: { getHeader: async (id) => ({ id, cwd: "/other/project" }) },
+    canonicalizeDirectory: canonicalize,
+  });
+  await assert.rejects(registry.initialize(), /does not match Workspace path/);
+});
