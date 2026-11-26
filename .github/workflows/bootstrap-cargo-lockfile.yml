@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           version="$(rustc --version | awk '{print $2}')"
-          printf '[toolchain]\\nchannel = "%s"\\nprofile = "minimal"\\n' "$version" > spikes/sqlite-benchmark/rust/rust-toolchain.toml
+          printf '[toolchain]\nchannel = "%s"\nprofile = "minimal"\n' "$version" > spikes/sqlite-benchmark/rust/rust-toolchain.toml
           cat spikes/sqlite-benchmark/rust/rust-toolchain.toml
       - name: Generate Cargo.lock
         working-directory: spikes/sqlite-benchmark/rust
