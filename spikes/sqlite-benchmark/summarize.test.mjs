@@ -40,8 +40,8 @@ try {
   assert.match(complete.stdout, /linux \| node:sqlite DatabaseSync \/ main-thread-sync \| 2 \|/);
   assert.match(complete.stdout, /windows \| node:sqlite DatabaseSync \/ worker-thread \| 2 \|/);
   assert.match(complete.stdout, /linux \| rusqlite \/ rust-native \| 2 \|/);
-  assert.match(complete.stdout, /150\.0 \(150\.0–150\.0\)/);
-  assert.match(complete.stdout, /7\.25 ms median \(n=1\)/);
+  assert.match(complete.stdout, /160\.0 \(150\.0–170\.0\)/);
+  assert.match(complete.stdout, /7\.25 ms median \(n=2\)/);
   assert.doesNotMatch(complete.stdout, /999\.00 ms/);
 
   const incomplete = spawnSync(process.execPath, [script, directory, '--expected-repeats=5'], { encoding: 'utf8' });
