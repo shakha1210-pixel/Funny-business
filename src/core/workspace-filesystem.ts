@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { lstat, mkdir, open, realpath, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, open, opendir, readFile, realpath, rename, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { WorkspaceRegistry } from "./workspace-registry.js";
 
@@ -148,6 +148,7 @@ export interface WorkspaceFilesystemOptions {
   readonly createId?: () => string;
   readonly now?: () => number;
   readonly maxReadBytes?: number;
+  readonly maxListEntries?: number;
 }
 
 export class WorkspaceFilesystem {
@@ -156,6 +157,7 @@ export class WorkspaceFilesystem {
   readonly #createId: () => string;
   readonly #now: () => number;
   readonly #maxReadBytes: number;
+  readonly #maxListEntries: number;
   readonly #grants = new Map<string, FilesystemGrant>();
   #initialized = false;
   #tail: Promise<void> = Promise.resolve();
@@ -166,8 +168,12 @@ export class WorkspaceFilesystem {
     this.#createId = options.createId ?? randomUUID;
     this.#now = options.now ?? Date.now;
     this.#maxReadBytes = options.maxReadBytes ?? 1024 * 1024;
+    this.#maxListEntries = options.maxListEntries ?? 5000;
     if (!Number.isSafeInteger(this.#maxReadBytes) || this.#maxReadBytes < 1) {
       throw new RangeError("maxReadBytes must be a positive safe integer");
+    }
+    if (!Number.isSafeInteger(this.#maxListEntries) || this.#maxListEntries < 1) {
+      throw new RangeError("maxListEntries must be a positive safe integer");
     }
   }
 
@@ -269,10 +275,13 @@ export class WorkspaceFilesystem {
     const segments = resolveRelativePath(relativePath);
     const target = await this.#resolveExisting(root, segments);
     if (!target.metadata.isDirectory()) throw new Error("Filesystem target is not a directory");
-    const { readdir } = await import("node:fs/promises");
-    const names = await readdir(target.path);
     const entries: FilesystemEntry[] = [];
-    for (const name of names) {
+    const directory = await opendir(target.path);
+    for await (const item of directory) {
+      const name = item.name;
+      if (entries.length >= this.#maxListEntries) {
+        throw new Error("Directory listing exceeds the configured entry limit");
+      }
       const child = join(target.path, name);
       assertContained(root, child);
       try {
