@@ -634,8 +634,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added `docs/research/SQLITE-VERTICAL-SLICE.md` and indexed it in the documentation hub.
 
 ### Verification and limitations
-- The latest CI run before this spike, [45897862903](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45897862903), passed on the existing main commit; it does not include the new spike.
-- The new commit's CI must complete before calling this spike verified.
-- This is a contract smoke test, not a performance benchmark or a production persistence implementation. Commit-ambiguity/crash injection, concurrency, backup/restore, Node event-loop delay, and Rust/Tauri comparison remain open.
+- Verified GitHub Actions run [45898898484](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45898898484): install, typecheck, all tests, and build passed on Ubuntu, Windows, and macOS.
+- The first cross-platform run exposed a Windows-only `EBUSY` cleanup failure because SQLite handles remained open when the temporary database directory was removed. The test helper now closes all handles before cleanup; the follow-up matrix passed.
+- Node emitted its expected ExperimentalWarning for `node:sqlite`; API maturity remains an explicit production risk.
+- This is a contract smoke test, not a performance benchmark or production persistence implementation. Commit-ambiguity/crash injection, concurrent-process behavior, backup/restore, Node event-loop delay, packaging, and Rust/Tauri comparison remain open.
 - No SQLite dependency was added; the pnpm lockfile remains a separate reproducibility blocker for third-party native bindings.
 
