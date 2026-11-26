@@ -166,7 +166,7 @@ test("rejects cross-origin Workspace mutations", async () => {
     canonicalizeDirectory: async (path) => path,
   });
   await registry.initialize();
-  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions));
+  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json"))));
   try {
     const address = await listenUiServer(server, 0);
     const response = await fetch(`http://${address.host}:${address.port}/api/workspaces`, {
