@@ -46,7 +46,8 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 - [x] Bounded directory enumeration, pagination, directory-bound cursors, bounded UTF-8 reads, stale-version checks, symlink rejection.
 - [x] Browser file explorer with grant/revoke, navigation, load-more, preview, stale-request guards.
 - [x] Per-Session JSON user-message history, 64 KiB limit, serialized appends, archived Session write rejection.
-- [ ] Assistant/tool messages and Agent Runtime (not implemented).
+- [x] Pure Agent Runtime contracts: AgentRun/AgentMessage/event/provider types, strict state transitions, and interrupted-run startup policy (no executor or persistence yet).
+- [ ] Assistant/tool message persistence and the durable Agent Runtime coordinator (not implemented).
 
 ### Persistence research and reproducibility
 - [x] SQLite binding evaluation and isolated Node node:sqlite transaction vertical slice.
@@ -59,6 +60,9 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 
 ## Verification ledger
 
+- [x] GitHub Actions run 45911318923 — Agent Runtime contract + lifecycle tests, typecheck, full tests, benchmark smoke checks, and build; Ubuntu/Windows/macOS success.
+- [x] GitHub Actions run 45911210929 — Agent Runtime contract documentation and task-chain update, Ubuntu/Windows/macOS success.
+- [x] GitHub Actions run 45911208613 — Agent Runtime contract handbook update, Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45908460276 — documentation checkpoint, Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45908448152 — roadmap checkpoint, Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45908372776 — directory-bound pagination documentation, success.
