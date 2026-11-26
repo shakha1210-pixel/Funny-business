@@ -61,7 +61,7 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
   readonly #sessions: SessionRegistry;
   readonly #journal: SessionCreationJournal;
   readonly #messages: SessionMessageRegistry;
-  readonly #filesystem?: WorkspaceFilesystem;
+  readonly #filesystem: WorkspaceFilesystem | undefined;
   #creationTail: Promise<void> = Promise.resolve();
 
   constructor(
