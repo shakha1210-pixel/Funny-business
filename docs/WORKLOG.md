@@ -244,3 +244,29 @@ Update this file with meaningful research, implementation, tests, and blockers.
 3. Add a proper state feed with baseline plus ordered updates and cancellation/reconnect handling.
 4. Add path/symlink and crash-recovery tests; decide if/when SQLite replaces JSON snapshots.
 5. Generate and commit pnpm-lock.yaml in a real pnpm environment, then restore CI dependency caching.
+
+
+## 2026-11-27 — Workspace API integration
+
+### Completed
+- Added local host API routes for listing, registering, renaming, and unregistering Workspaces.
+- Connected application startup to the durable JSON Workspace registry under `FUNNY_HOME` or the user's `~/.funny-business` data directory.
+- Connected the UI project list to live Workspace registry data and added an explicit folder-path registration dialog.
+- Added request body size limits, JSON validation, same-origin checks for browser mutations, JSON-only mutation requests, and stable HTTP error responses.
+- Kept the HTTP server bound to 127.0.0.1 and static assets allowlisted; no arbitrary filesystem-serving route exists.
+- Added host API tests including cross-origin mutation rejection.
+- Verified GitHub Actions run [45888660504](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45888660504): typecheck, tests, and build passed on Ubuntu, macOS, and Windows.
+
+### Current behavior and limitations
+- Workspace list/create/rename/unregister now use the actual host registry and persistent store.
+- The UI still displays illustrative Git, model, task, and agent status; those services do not exist yet.
+- Session attachment API is available in the domain but application startup currently has no Session persistence provider, so no Sessions can be attached through the running app yet.
+- Directory registration currently requires the user to enter an existing absolute path; native folder picker is not implemented.
+- Cross-process store locking and a durable mutation journal are not implemented.
+
+### Next actions
+1. Add native directory picker capability and path validation UX.
+2. Add Session domain and persistence, then wire Session attachment and recent task projections.
+3. Add reconnect-safe Workspace state feed and renderer-side selected Workspace switching.
+4. Implement filesystem provider and safe file browser only after explicit access grants are designed.
+5. Add a pnpm lockfile and re-enable dependency caching.
