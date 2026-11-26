@@ -463,3 +463,5 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Add a broader storage-coordination design covering cross-process locks, stale lock recovery, and future schema migrations before enabling multiple host processes.
 3. Add Session revisioned feeds and use them to keep the browser Session list synchronized without manual refresh.
 4. Continue with explicit filesystem access grants and safe file operations before implementing the file explorer.
+
+- CI caught two HTTP test fixtures still constructing the host without its newly required journal; updated them to use the durable journal and to assert the generated opaque Session ID rather than a registry-injected ID.
