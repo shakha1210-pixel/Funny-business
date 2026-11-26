@@ -58,8 +58,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
          INSERT INTO workspaces(id, canonical_path) VALUES ('workspace-1', '/benchmark/workspace');"
     )?;
 
+    for index in 0..warmup {
+        let id = format!("session-{}", index);
+        let operation = format!("operation-{}", index);
+        let now = "2026-11-27T00:00:00.000Z";
+        let transaction = connection.transaction()?;
+        transaction.execute("INSERT INTO sessions(id, cwd, created_at) VALUES (?1, ?2, ?3)",
+            params![id, "/benchmark/workspace", now])?;
+        transaction.execute("INSERT INTO workspace_sessions(workspace_id, session_id) VALUES (?1, ?2)",
+            params!["workspace-1", id])?;
+        transaction.execute("INSERT INTO change_log(operation_id, event_type, entity_id, created_at) VALUES (?1, ?2, ?3, ?4)",
+            params![operation, "session.created", id, now])?;
+        let sequence = transaction.last_insert_rowid();
+        transaction.execute("INSERT INTO operation_receipts(operation_id, operation_kind, session_id, change_sequence) VALUES (?1, ?2, ?3, ?4)",
+            params![operation, "session.create", id, sequence])?;
+        transaction.commit()?;
+    }
+
     let mut samples = Vec::with_capacity(iterations);
-    for index in 0..(warmup + iterations) {
+    let benchmark_started = Instant::now();
+    for index in warmup..(warmup + iterations) {
         let id = format!("session-{}", index);
         let operation = format!("operation-{}", index);
         let now = "2026-11-27T00:00:00.000Z";
@@ -80,15 +98,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let total_ms = samples.iter().sum::<f64>();
-    let wall_started = Instant::now();
-    // Total wall time is measured separately from summed operation latency to include loop overhead.
+    let total_ms = benchmark_started.elapsed().as_secs_f64() * 1000.0;
     let verified: i64 = connection.query_row("SELECT count(*) FROM sessions", [], |row| row.get(0))?;
     if verified != (warmup + iterations) as i64 {
         return Err(format!("row count mismatch: {}", verified).into());
     }
-    let measured_total_ms = samples.iter().sum::<f64>();
-    let elapsed_ms = total_ms.max(measured_total_ms);
+    let elapsed_ms = total_ms;
     samples.sort_by(f64::total_cmp);
     println!(
         "{{\"benchmark\":\"sqlite-session-create-transaction-v1\",\"adapter\":\"rusqlite\",\"runtime\":\"rust\",\"platform\":\"{}\",\"arch\":\"{}\",\"journal\":\"{}\",\"synchronous\":\"{}\",\"iterations\":{},\"warmup\":{},\"openMs\":{:.3},\"summedTransactionMs\":{:.3},\"transactionMs\":{{\"p50\":{:.4},\"p95\":{:.4},\"p99\":{:.4},\"max\":{:.4}}},\"verifiedSessionRows\":{}}}",
