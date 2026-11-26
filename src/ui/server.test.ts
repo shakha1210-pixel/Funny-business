@@ -139,9 +139,17 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     assert.equal(messageBody.message.role, "user");
     assert.equal(messageBody.message.content, "Persist this task");
 
+    const maxUtf8Content = "😀".repeat(16 * 1024);
+    const maxMessageResponse = await fetch(base + "/api/sessions/" + sessionBody.session.id + "/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: maxUtf8Content }),
+    });
+    assert.equal(maxMessageResponse.status, 201);
+
     const messageListResponse = await fetch(base + "/api/sessions/" + sessionBody.session.id + "/messages");
     const messageList = await messageListResponse.json() as { messages: Array<{ content: string }> };
-    assert.deepEqual(messageList.messages.map((message) => message.content), ["Persist this task"]);
+    assert.deepEqual(messageList.messages.map((message) => message.content), ["Persist this task", maxUtf8Content]);
 
     const renamedSession = await fetch(base + "/api/sessions/" + sessionBody.session.id, {
       method: "PATCH",
