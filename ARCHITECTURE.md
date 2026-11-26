@@ -91,9 +91,9 @@ The first host-owned filesystem adapter is explicitly read-only.
 
 **Critical residual risk:** portable Node filesystem APIs do not provide a race-free openat-style chain for intermediate components. Symlink swaps and TOCTOU races remain possible between validation and open. O_NOFOLLOW only protects the final component where supported. This adapter is not an OS sandbox and must not be exposed to untrusted remote clients. Do not add writes, deletes, moves, or untrusted agent access until a native host can provide stronger directory-handle guarantees, atomic replacement, backups, and rollback.
 
-## 5. Agent runtime — target contract, not yet implemented
+## 5. Agent runtime — contract foundation implemented; coordinator not yet implemented
 
-The next domain milestone is a host-owned run lifecycle layered on top of Sessions and user-message history. Do not mistake the current message composer for an agent.
+The first provider/storage-neutral contract slice now lives in src/core/agent-runtime-contract.ts with transition tests in src/core/agent-runtime-contract.test.ts. It defines AgentRun, AgentMessage, ordered AgentRunEvent, provider request/event contracts, AbortSignal propagation, and a strict state-transition helper. The helper enforces terminal-state immutability, timestamps, structured failure details, and startup recovery of queued/running runs to interrupted. This is domain scaffolding only: no run coordinator, persistence adapter, provider implementation, tool executor, HTTP route, or UI execution flow exists. Do not mistake the current message composer for an agent.
 
 ### Core entities
 - AgentRun: stable run ID, Session ID, operation/idempotency ID, status, timestamps, provider/model identity (non-secret), cancellation/failure metadata, and durable sequence references.
