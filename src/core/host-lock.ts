@@ -38,11 +38,7 @@ export class JsonHostLock {
   async acquire(): Promise<void> {
     if (this.#acquired) throw new HostLockError("Host lock is already acquired by this instance");
 
-    const parent = this.#directory.slice(0, Math.max(
-      this.#directory.lastIndexOf("/"),
-      this.#directory.lastIndexOf("\\"),
-    ));
-    await mkdir(parent, { recursive: true });
+    await mkdir(dirname(this.#directory), { recursive: true });
 
     try {
       await mkdir(this.#directory, { mode: 0o700 });
