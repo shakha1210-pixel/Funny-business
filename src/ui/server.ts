@@ -215,7 +215,7 @@ async function handleWorkspaceApi(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workspace operation failed";
     const status = /not found/i.test(message) ? 404 :
-      /already exists|collision/i.test(message) ? 409 :
+      /already exists|collision|archived Session/i.test(message) ? 409 :
       /required|cannot be empty|must be|valid JSON|64 KiB/i.test(message) ? 400 : 500;
     if (response.headersSent) {
       response.destroy();
