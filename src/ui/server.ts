@@ -141,8 +141,8 @@ async function handleWorkspaceApi(
       sendJson(response, 200, { removed: true, id });
       return;
     }
-    if (pathname.startsWith("/api/workspaces")) {
-      sendJson(response, 405, { error: "Method or Workspace API route not supported" });
+    if (pathname.startsWith("/api/workspaces") || pathname.startsWith("/api/sessions")) {
+      sendJson(response, 405, { error: "Method or Workspace/Session API route not supported" });
       return;
     }
   } catch (error) {
