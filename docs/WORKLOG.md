@@ -707,3 +707,17 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - The existing Rust compile-check and prior CI matrix remain valid for the previous harness revision; the worker-thread changes require a new CI run.
 - No performance measurements have been collected in this environment. The manual benchmark workflow still must be run, repeated at least five times per OS, and compared by medians/ranges.
 - The worker-thread variant is not yet a production database worker/coordinator; it is an isolated microbenchmark. No runtime/binding decision or production persistence change has been made.
+
+
+## 2026-11-27 — Repeated SQLite runtime benchmark workflow
+
+### Completed
+- Changed the manual cross-platform benchmark workflow to run independent repetitions for Node main-thread, Node worker-thread, and Rust adapters.
+- Added a configurable `repeats` input (default 5, maximum 20) and validation for iteration, warmup, and repeat counts.
+- Each adapter/repetition now emits its own JSON artifact file on Ubuntu, Windows, and macOS, avoiding overwriting earlier measurements.
+- Kept the benchmark explicitly exploratory; no runtime decision is made from uncollected or single-run results.
+
+### Pending
+- Run the workflow manually and inspect all 45 default result files (3 adapters × 5 repetitions × 3 OS).
+- Pin and commit the generated Rust `Cargo.lock` and toolchain before treating measurements as reproducible.
+- Review the workflow matrix results and benchmark artifact schema before calculating medians and spread.
