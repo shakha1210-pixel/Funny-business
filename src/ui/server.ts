@@ -44,13 +44,13 @@ async function writeEventStreamFrame(response: ServerResponse, frame: string): P
   });
 }
 
-async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJson(request: IncomingMessage, maxBytes = 64 * 1024): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > 64 * 1024) throw new Error("Request body exceeds 64 KiB limit");
+    if (size > maxBytes) throw new Error("Request body exceeds configured limit of " + Math.ceil(maxBytes / 1024) + " KiB");
     chunks.push(buffer);
   }
   let value: unknown;
@@ -142,7 +142,7 @@ async function handleWorkspaceApi(
     }
     if (sessionMessages && method === "POST") {
       const sessionId = decodeURIComponent(sessionMessages[1]!);
-      const body = await readJson(request);
+      const body = await readJson(request, 512 * 1024);
       if (typeof body.content !== "string") {
         sendJson(response, 400, { error: "content must be a string" });
         return;
@@ -216,7 +216,7 @@ async function handleWorkspaceApi(
     const message = error instanceof Error ? error.message : "Workspace operation failed";
     const status = /not found/i.test(message) ? 404 :
       /already exists|collision|archived Session/i.test(message) ? 409 :
-      /required|cannot be empty|must be|valid JSON|64 KiB/i.test(message) ? 400 : 500;
+      /required|cannot be empty|must be|valid JSON|configured limit|byte limit/i.test(message) ? 400 : 500;
     if (response.headersSent) {
       response.destroy();
       return;
