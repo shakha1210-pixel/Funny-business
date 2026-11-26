@@ -4,6 +4,7 @@ let workspaces = [];
 let selectedWorkspaceId = null;
 let sessions = [];
 let selectedSessionId = null;
+let sessionEvents = null;
 
 function notify(message) {
   toast.textContent = message;
@@ -126,9 +127,10 @@ async function selectWorkspace(id) {
   selectedSessionId = null;
   renderWorkspaces();
   await loadSessions();
+  connectSessionFeed();
 }
 
-async function loadSessions() {
+function renderSessions() {
   const container = document.querySelector("#recent-sessions");
   container.replaceChildren();
   const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
@@ -140,36 +142,86 @@ async function loadSessions() {
     sessions = [];
     return;
   }
+  if (sessions.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "task-row";
+    empty.textContent = "No sessions yet";
+    container.append(empty);
+    return;
+  }
+  for (const session of sessions) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "task-row" + (session.id === selectedSessionId ? " active-task" : "");
+    const indicator = document.createElement("span");
+    indicator.className = "task-indicator " + (session.status === "active" ? "running" : "done");
+    const title = document.createElement("span");
+    title.textContent = session.title;
+    const time = document.createElement("span");
+    time.className = "task-time";
+    time.textContent = session.status === "archived" ? "archived" : "active";
+    row.append(indicator, title, time);
+    row.addEventListener("click", () => {
+      selectedSessionId = session.id;
+      renderSessions();
+      notify("Selected session: " + session.title);
+    });
+    container.append(row);
+  }
+}
+
+function connectSessionFeed() {
+  if (sessionEvents) {
+    sessionEvents.close();
+    sessionEvents = null;
+  }
+  const workspaceId = selectedWorkspaceId;
+  if (!workspaceId || typeof EventSource === "undefined") return;
+
+  const stream = new EventSource("/api/workspaces/" + encodeURIComponent(workspaceId) + "/sessions/events");
+  sessionEvents = stream;
+  stream.addEventListener("snapshot", (event) => {
+    if (selectedWorkspaceId !== workspaceId) return;
+    try {
+      const message = JSON.parse(event.data);
+      sessions = Array.isArray(message.sessions) ? message.sessions : [];
+      if (selectedSessionId && !sessions.some((item) => item.id === selectedSessionId)) selectedSessionId = null;
+      renderSessions();
+    } catch {
+      notify("Received an invalid Session update from the local host.");
+    }
+  });
+  stream.addEventListener("change", (event) => {
+    if (selectedWorkspaceId !== workspaceId) return;
+    try {
+      const change = JSON.parse(event.data).change;
+      if (change.kind === "removed") {
+        sessions = sessions.filter((item) => item.id !== change.sessionId);
+      } else if (change.session) {
+        const index = sessions.findIndex((item) => item.id === change.session.id);
+        if (index >= 0) sessions[index] = change.session;
+        else sessions.unshift(change.session);
+      }
+      if (selectedSessionId && !sessions.some((item) => item.id === selectedSessionId)) selectedSessionId = null;
+      renderSessions();
+    } catch {
+      notify("Received an invalid Session update from the local host.");
+    }
+  });
+}
+
+async function loadSessions() {
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  if (!workspace) {
+    sessions = [];
+    renderSessions();
+    return;
+  }
   try {
     const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/sessions");
     sessions = result.sessions;
     if (selectedSessionId && !sessions.some((item) => item.id === selectedSessionId)) selectedSessionId = null;
-    if (sessions.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "task-row";
-      empty.textContent = "No sessions yet";
-      container.append(empty);
-      return;
-    }
-    for (const session of sessions) {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "task-row" + (session.id === selectedSessionId ? " active-task" : "");
-      const indicator = document.createElement("span");
-      indicator.className = "task-indicator " + (session.status === "active" ? "running" : "done");
-      const title = document.createElement("span");
-      title.textContent = session.title;
-      const time = document.createElement("span");
-      time.className = "task-time";
-      time.textContent = session.status === "archived" ? "archived" : "active";
-      row.append(indicator, title, time);
-      row.addEventListener("click", () => {
-        selectedSessionId = session.id;
-        loadSessions();
-        notify("Selected session: " + session.title);
-      });
-      container.append(row);
-    }
+    renderSessions();
   } catch (error) {
     notify(error instanceof Error ? error.message : "Could not load sessions");
   }
@@ -182,6 +234,7 @@ async function loadWorkspaces() {
     if (!workspaces.some((item) => item.id === selectedWorkspaceId)) selectedWorkspaceId = workspaces[0]?.id ?? null;
     renderWorkspaces();
     await loadSessions();
+    connectSessionFeed();
   } catch {
     notify("Could not load Workspace data from the local host.");
   }
@@ -271,6 +324,7 @@ document.querySelector("#agent-input").addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("pagehide", () => sessionEvents?.close());
 loadWorkspaces();
 fetch("/api/health").then((response) => response.json()).then((health) => {
   if (health.status !== "ok") notify("Local UI health check failed.");
