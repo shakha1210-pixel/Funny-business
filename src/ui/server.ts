@@ -67,6 +67,40 @@ async function handleWorkspaceApi(
     }
   }
   try {
+    const workspaceSessions = pathname.match(/^\\/api\\/workspaces\\/([^/]+)\\/sessions$/);
+    if (workspaceSessions && method === "GET") {
+      const workspaceId = decodeURIComponent(workspaceSessions[1]!);
+      sendJson(response, 200, { sessions: registry.listSessions(workspaceId) });
+      return;
+    }
+    if (workspaceSessions && method === "POST") {
+      const workspaceId = decodeURIComponent(workspaceSessions[1]!);
+      const body = await readJson(request);
+      if (body.title !== undefined && typeof body.title !== "string") {
+        sendJson(response, 400, { error: "title must be a string" });
+        return;
+      }
+      const session = await registry.createSession(workspaceId, body.title as string | undefined);
+      sendJson(response, 201, { session });
+      return;
+    }
+    const sessionMatch = pathname.match(/^\\/api\\/sessions\\/([^/]+)$/);
+    if (sessionMatch && method === "PATCH") {
+      const sessionId = decodeURIComponent(sessionMatch[1]!);
+      const body = await readJson(request);
+      if (typeof body.title !== "string") {
+        sendJson(response, 400, { error: "title must be a string" });
+        return;
+      }
+      sendJson(response, 200, { session: await registry.renameSession(sessionId, body.title) });
+      return;
+    }
+    const archiveMatch = pathname.match(/^\\/api\\/sessions\\/([^/]+)\\/archive$/);
+    if (archiveMatch && method === "POST") {
+      const sessionId = decodeURIComponent(archiveMatch[1]!);
+      sendJson(response, 200, { session: await registry.archiveSession(sessionId) });
+      return;
+    }
     if (pathname === "/api/workspaces" && method === "GET") {
       sendJson(response, 200, { workspaces: registry.list() });
       return;
