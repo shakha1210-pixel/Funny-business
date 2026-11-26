@@ -237,7 +237,7 @@ test("requires explicit grants for bounded Workspace file listing and reading", 
     assert.equal(listingBody.entries.length, 1);
     assert.ok(listingBody.nextCursor);
     const nextPage = await fetch(base + `/api/workspaces/${workspace.id}/files?limit=1&cursor=${encodeURIComponent(listingBody.nextCursor)}`);
-    const nextPageBody = await nextPage.json() as { entries: Array<{ name: string }> };
+    const nextPageBody = await nextPage.json() as { entries: Array<{ name: string; version?: string }> };
     assert.equal(nextPageBody.entries.length, 1);
     const file = listingBody.entries.find((entry) => entry.name === "README.txt") ??
       nextPageBody.entries.find((entry) => entry.name === "README.txt");
