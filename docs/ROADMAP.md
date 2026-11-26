@@ -26,6 +26,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
 - [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
+- [x] Revisioned Session feed with atomic baseline, bounded overflow resynchronization, cancellation, loopback SSE transport, and live browser Session navigation.
 - [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation (cross-process coordination remains open).
 - [ ] Safe filesystem access grants and file operations.
 - [x] Draft application interface and Workspace interaction specification.
@@ -86,4 +87,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Add a revisioned Session state feed with atomic baseline/subscription, bounded overflow resynchronization, and cancellation; then wire the browser Session list to live host state. In parallel, design cross-process storage coordination before allowing multiple host processes to write the JSON stores. Add and commit a pnpm lockfile, then restore dependency caching. Keep filesystem access grants and safe file operations ahead of file browsing. The next desktop milestone remains a Tauri vertical slice against the same host contract.
+Design cross-process storage coordination before allowing multiple host processes to write the JSON stores; decide whether to retain JSON behind a single-host guard or move to a transactional store such as SQLite. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
