@@ -216,3 +216,59 @@ test("a committed Session survives journal cleanup failure and the next operatio
   assert.deepEqual(registry.get(workspace.id)?.sessionIds, [second.id, first.id]);
   assert.equal(await journal.load(), undefined);
 });
+
+
+test("Session watch provides a baseline and follows persisted Session and membership changes", async () => {
+  const { host } = await createHost();
+  const workspace = await host.create("/session-feed", "Session feed");
+  const iterator = host.watchSessions(workspace.id)[Symbol.asyncIterator]();
+  const baseline = await iterator.next(undefined);
+  assert.equal(baseline.value?.type, "snapshot");
+  assert.equal(baseline.value?.revision, 0);
+  assert.deepEqual(baseline.value?.sessions, []);
+
+  const session = await host.createSession(workspace.id, "Initial");
+  const attached = await iterator.next(undefined);
+  assert.equal(attached.value?.type, "snapshot");
+  assert.equal(attached.value?.sessions?.[0]?.id, session.id);
+
+  await host.renameSession(session.id, "Renamed");
+  const renamed = await iterator.next(undefined);
+  assert.equal(renamed.value?.type, "change");
+  assert.equal(renamed.value?.change?.kind, "updated");
+  assert.equal(renamed.value?.change?.session?.title, "Renamed");
+
+  await host.archiveSession(session.id);
+  const archived = await iterator.next(undefined);
+  assert.equal(archived.value?.change?.session?.status, "archived");
+  await iterator.return?.(undefined);
+});
+
+test("Session watch replaces an overflowing queue with the current Workspace snapshot", async () => {
+  const { host } = await createHost();
+  const workspace = await host.create("/session-overflow", "Session overflow");
+  const iterator = host.watchSessions(workspace.id, { maxQueue: 1 })[Symbol.asyncIterator]();
+  await iterator.next(undefined);
+
+  await host.createSession(workspace.id, "First");
+  await host.createSession(workspace.id, "Second");
+  const replacement = await iterator.next(undefined);
+  assert.equal(replacement.value?.type, "snapshot");
+  assert.equal(replacement.value?.sessions?.length, 2);
+  assert.deepEqual(replacement.value?.sessions?.map(({ title }) => title), ["Second", "First"]);
+  await iterator.return?.(undefined);
+});
+
+test("Session watch cancellation releases a pending iterator read", async () => {
+  const { host } = await createHost();
+  const workspace = await host.create("/session-cancel", "Session cancel");
+  const controller = new AbortController();
+  const iterator = host.watchSessions(workspace.id, { signal: controller.signal })[Symbol.asyncIterator]();
+  await iterator.next(undefined);
+
+  const pending = iterator.next(undefined);
+  controller.abort();
+  const result = await pending;
+  assert.equal(result.done, true);
+  await iterator.return?.(undefined);
+});
