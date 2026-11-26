@@ -24,7 +24,8 @@ This directory is the canonical home for Funny-business project documentation.
 - [Workspace reverse engineering](research/WORKSPACE-REVERSE-ENGINEERING.md) — first-pass Workspace, persistence, filesystem, and UI findings.
 - [Storage coordination study](research/STORAGE-COORDINATION.md) — single-host locking, SQLite transactions, multi-process risks, and failure-test plan.
 - [Dependency reproducibility](research/DEPENDENCY-REPRODUCIBILITY.md) — pnpm lockfile bootstrap and frozen-install follow-up.
-- [SQLite binding evaluation](research/SQLITE-BINDING-EVALUATION.md) — Node 22, better-sqlite3, and Tauri/Rust persistence options; no binding selected yet.\n- [SQLite runtime benchmark](research/SQLITE-RUNTIME-BENCHMARK.md) — reproducible Node `node:sqlite` versus Rust `rusqlite` transaction microbenchmark and manual cross-platform workflow.\n- [SQLite vertical slice](research/SQLITE-VERTICAL-SLICE.md) — isolated Node built-in SQLite transaction-contract spike and its current acceptance limits.
+- [SQLite binding evaluation](research/SQLITE-BINDING-EVALUATION.md) — Node 22, better-sqlite3, and Tauri/Rust persistence options; no binding selected yet.
+- [SQLite runtime benchmark](research/SQLITE-RUNTIME-BENCHMARK.md) — reproducible Node `node:sqlite` versus Rust `rusqlite` transaction microbenchmark and manual cross-platform workflow.\n- [SQLite vertical slice](research/SQLITE-VERTICAL-SLICE.md) — isolated Node built-in SQLite transaction-contract spike and its current acceptance limits.
 
 ## Documentation rules
 
