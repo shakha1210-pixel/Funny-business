@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Session } from "../core/session-registry.js";
 import type { SessionCreationJournal } from "../core/session-creation-journal.js";
-import type { SessionRegistry } from "../core/session-registry.js";
+import type { SessionChange, SessionRegistry } from "../core/session-registry.js";
 import type { Workspace, WorkspaceChange, WorkspaceRegistry, WorkspaceRegistrySnapshot } from "../core/workspace-registry.js";
 
 export interface WorkspaceFeedMessage {
@@ -16,6 +16,18 @@ export interface WorkspaceWatchOptions {
   readonly maxQueue?: number;
 }
 
+export interface SessionFeedMessage {
+  readonly type: "snapshot" | "change";
+  readonly revision: number;
+  readonly sessions?: readonly Session[];
+  readonly change?: SessionChange;
+}
+
+export interface SessionWatchOptions {
+  readonly signal?: AbortSignal;
+  readonly maxQueue?: number;
+}
+
 export interface WorkspaceHost {
   list(): readonly Workspace[];
   create(path: string, title?: string): Promise<Workspace>;
@@ -26,6 +38,7 @@ export interface WorkspaceHost {
   renameSession(sessionId: string, title: string): Promise<Session>;
   archiveSession(sessionId: string): Promise<Session>;
   watch(options?: WorkspaceWatchOptions): AsyncIterable<WorkspaceFeedMessage>;
+  watchSessions(workspaceId: string, options?: SessionWatchOptions): AsyncIterable<SessionFeedMessage>;
 }
 
 function snapshotMessage(state: WorkspaceRegistrySnapshot): WorkspaceFeedMessage {
@@ -119,6 +132,74 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
     // If the Workspace was unregistered after a successful attachment, preserve the
     // Session: unregister is intentionally non-destructive and must never erase user work.
     await this.#journal.clear();
+  }
+
+  /** Watches one Workspace's Sessions with an atomic baseline and bounded resynchronization. */
+  async *watchSessions(workspaceId: string, options: SessionWatchOptions = {}): AsyncGenerator<SessionFeedMessage> {
+    const maxQueue = options.maxQueue ?? 64;
+    if (!Number.isSafeInteger(maxQueue) || maxQueue < 1) {
+      throw new RangeError("Session watch maxQueue must be a positive safe integer");
+    }
+    if (options.signal?.aborted) return;
+
+    const queue: SessionFeedMessage[] = [];
+    let revision = 0;
+    let wake: (() => void) | undefined;
+    let closed = false;
+    const notify = () => {
+      const pending = wake;
+      wake = undefined;
+      pending?.();
+    };
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      notify();
+    };
+    const currentSessions = (): readonly Session[] => {
+      return this.#registry.get(workspaceId) ? this.listSessions(workspaceId) : [];
+    };
+    const makeSnapshot = (): SessionFeedMessage => ({
+      type: "snapshot",
+      revision: ++revision,
+      sessions: currentSessions(),
+    });
+    const enqueue = (message: SessionFeedMessage) => {
+      if (closed) return;
+      if (queue.length >= maxQueue) queue.splice(0, queue.length, makeSnapshot());
+      else queue.push(message);
+      notify();
+    };
+
+    const sessionSubscription = this.#sessions.subscribe((change) => {
+      const workspace = this.#registry.get(workspaceId);
+      if (workspace?.sessionIds.includes(change.sessionId)) {
+        enqueue({ type: "change", revision: ++revision, change });
+      }
+    });
+    const workspaceSubscription = this.#registry.subscribe((change) => {
+      if (change.workspaceId === workspaceId) enqueue(makeSnapshot());
+    });
+    const onAbort = () => close();
+    options.signal?.addEventListener("abort", onAbort, { once: true });
+
+    try {
+      const baseline = this.listSessions(workspaceId);
+      yield { type: "snapshot", revision: 0, sessions: baseline };
+      while (!closed) {
+        const next = queue.shift();
+        if (next) {
+          yield next;
+          continue;
+        }
+        await new Promise<void>((resolve) => { wake = resolve; });
+      }
+    } finally {
+      close();
+      options.signal?.removeEventListener("abort", onAbort);
+      sessionSubscription.unsubscribe();
+      workspaceSubscription.unsubscribe();
+    }
   }
 
   renameSession(sessionId: string, title: string): Promise<Session> {
