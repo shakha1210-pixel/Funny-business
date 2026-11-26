@@ -188,9 +188,12 @@ test("startup recovery preserves orphan Sessions when their Workspace was unregi
 });
 
 test("startup recovery fails closed if a Workspace references a missing Session", async () => {
-  const { host, registry, journal } = await createHost();
+  const { host, registry, sessions, journal } = await createHost();
   const workspace = await host.create("/broken", "Broken");
-  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: "missing-session" });
+  const session = await sessions.create(workspace.path, "Will go missing", "missing-session");
+  await registry.attachSession(workspace.id, session.id);
+  await sessions.discard(session.id);
+  await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: session.id });
   await assert.rejects(host.recoverPendingSessionCreation(), /without its Session/);
   assert.notEqual(await journal.load(), undefined);
 });
