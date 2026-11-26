@@ -26,6 +26,8 @@ class MemorySessionStore implements SessionStore {
 async function createHost() {
   let workspaceId = 0;
   let sessionId = 0;
+  const workspaceStore = new MemoryWorkspaceStore();
+  const sessionStore = new MemorySessionStore();
   const sessions = new SessionRegistry({
     store: sessionStore,
     canonicalizeDirectory: async (path) => path,
@@ -33,8 +35,6 @@ async function createHost() {
     now: () => 123,
   });
   await sessions.initialize();
-  const workspaceStore = new MemoryWorkspaceStore();
-  const sessionStore = new MemorySessionStore();
   const registry = new WorkspaceRegistry({
     store: workspaceStore,
     sessions,
