@@ -24,6 +24,24 @@ export interface SessionRegistryOptions {
   readonly now?: () => number;
 }
 
+export interface SessionRegistrySnapshot {
+  readonly revision: number;
+  readonly sessions: readonly Session[];
+}
+
+export interface SessionChange {
+  readonly revision: number;
+  readonly kind: "created" | "updated" | "removed";
+  readonly sessionId: string;
+  readonly session?: Session;
+}
+
+export interface SessionSubscription {
+  /** Captured atomically with listener registration; later changes arrive through the listener. */
+  readonly snapshot: SessionRegistrySnapshot;
+  unsubscribe(): void;
+}
+
 async function canonicalizeExistingDirectory(path: string): Promise<string> {
   const canonical = await realpath(resolve(path));
   const metadata = await stat(canonical);
@@ -40,8 +58,10 @@ export class SessionRegistry {
   readonly #canonicalize: (path: string) => Promise<string>;
   readonly #createId: () => string;
   readonly #now: () => number;
+  readonly #listeners = new Set<(change: SessionChange) => void>();
   #items = new Map<string, Session>();
   #initialized = false;
+  #revision = 0;
   #tail: Promise<void> = Promise.resolve();
 
   constructor(options: SessionRegistryOptions) {
@@ -74,6 +94,47 @@ export class SessionRegistry {
       this.#items = next;
       this.#initialized = true;
     });
+  }
+
+  #state(): SessionRegistrySnapshot {
+    return { revision: this.#revision, sessions: clone([...this.#items.values()]) };
+  }
+
+  #publish(kind: SessionChange["kind"], sessionId: string, session?: Session): void {
+    this.#revision += 1;
+    const change: SessionChange = {
+      revision: this.#revision,
+      kind,
+      sessionId,
+      ...(session ? { session: clone([session])[0]! } : {}),
+    };
+    for (const listener of this.#listeners) {
+      try {
+        listener(change);
+      } catch {
+        // Observers cannot invalidate a mutation that has already been persisted and committed.
+      }
+    }
+  }
+
+  /** Registers the listener and captures its baseline synchronously, preventing a feed race. */
+  subscribe(listener: (change: SessionChange) => void): SessionSubscription {
+    this.#assertInitialized();
+    this.#listeners.add(listener);
+    let active = true;
+    return {
+      snapshot: this.#state(),
+      unsubscribe: () => {
+        if (!active) return;
+        active = false;
+        this.#listeners.delete(listener);
+      },
+    };
+  }
+
+  getSnapshot(): SessionRegistrySnapshot {
+    this.#assertInitialized();
+    return this.#state();
   }
 
   list(): readonly Session[] {
@@ -112,6 +173,7 @@ export class SessionRegistry {
       next.set(item.id, item);
       await this.#store.save(clone([...next.values()]));
       this.#items = next;
+      this.#publish("created", item.id, item);
       return clone([item])[0]!;
     });
   }
@@ -129,6 +191,7 @@ export class SessionRegistry {
       next.set(id, updated);
       await this.#store.save(clone([...next.values()]));
       this.#items = next;
+      this.#publish("updated", id, updated);
       return clone([updated])[0]!;
     });
   }
@@ -144,6 +207,7 @@ export class SessionRegistry {
       next.set(id, updated);
       await this.#store.save(clone([...next.values()]));
       this.#items = next;
+      this.#publish("updated", id, updated);
       return clone([updated])[0]!;
     });
   }
@@ -157,6 +221,7 @@ export class SessionRegistry {
       next.delete(id);
       await this.#store.save(clone([...next.values()]));
       this.#items = next;
+      this.#publish("removed", id);
       return true;
     });
   }
