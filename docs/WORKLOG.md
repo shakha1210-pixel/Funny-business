@@ -752,3 +752,8 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification and limitations
 - The summarizer is committed; push-triggered CI is pending.
 - No benchmark artifacts have been collected. The script does not make a runtime decision and must only be used with matching workload/settings.
+
+
+### Benchmark probe interpretation correction
+- Corrected the summarizer to report main-thread synchronous stall for Node sync mode and main-thread heartbeat delay for worker mode. The worker's own event-loop stall is not used as a UI-responsiveness proxy.
+- Extended the summarizer test fixture to prove that worker-thread results use the main-thread heartbeat measurement even when the worker's internal stall is larger.
