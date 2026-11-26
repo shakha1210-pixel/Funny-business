@@ -33,6 +33,10 @@ A local-first AI workspace and autonomous development environment combining a mo
     LOCAL DATA: Projects | Repositories | Environments | Models
                 Datasets | Notebooks | Artifacts | Logs
 
+## Host adapter boundary
+
+The application core exposes transport-neutral capability contracts. Renderers and transports depend on these contracts, not directly on domain registries, persistence stores, or operating-system APIs. The initial `WorkspaceHost` contract is adapted from `WorkspaceRegistry` and consumed by the loopback HTTP development transport. A future Tauri adapter must expose the same contract semantics through narrow typed commands; it must not duplicate Workspace policy or grant the renderer direct filesystem/process authority. Keep host adapters thin and test each adapter against the same contract suite.
+
 ## Core subsystems
 
 ### Plugin runtime
