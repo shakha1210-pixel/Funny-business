@@ -6,8 +6,15 @@ import { RegistryWorkspaceHost } from "./workspace-host.js";
 
 class MemoryWorkspaceStore implements WorkspaceStore {
   #items: readonly Workspace[] = [];
+  failNextSave = false;
   async load() { return this.#items; }
-  async save(items: readonly Workspace[]) { this.#items = structuredClone(items); }
+  async save(items: readonly Workspace[]) {
+    if (this.failNextSave) {
+      this.failNextSave = false;
+      throw new Error("workspace store unavailable");
+    }
+    this.#items = structuredClone(items);
+  }
 }
 
 class MemorySessionStore implements SessionStore {
@@ -20,21 +27,23 @@ async function createHost() {
   let workspaceId = 0;
   let sessionId = 0;
   const sessions = new SessionRegistry({
-    store: new MemorySessionStore(),
+    store: sessionStore,
     canonicalizeDirectory: async (path) => path,
     createId: () => `session-${++sessionId}`,
     now: () => 123,
   });
   await sessions.initialize();
+  const workspaceStore = new MemoryWorkspaceStore();
+  const sessionStore = new MemorySessionStore();
   const registry = new WorkspaceRegistry({
-    store: new MemoryWorkspaceStore(),
+    store: workspaceStore,
     sessions,
     canonicalizeDirectory: async (path) => path,
     createId: () => `workspace-${++workspaceId}`,
     now: () => 123,
   });
   await registry.initialize();
-  return { registry, sessions, host: new RegistryWorkspaceHost(registry, sessions) };
+  return { registry, sessions, workspaceStore, sessionStore, host: new RegistryWorkspaceHost(registry, sessions) };
 }
 
 test("registry adapter exposes the shared Workspace host contract", async () => {
@@ -64,6 +73,15 @@ test("host creates durable Sessions and attaches only matching Workspace paths",
   assert.equal(renamed.title, "Architecture");
   const archived = await host.archiveSession(created.id);
   assert.equal(archived.status, "archived");
+});
+
+test("host compensates a persisted Session when Workspace attachment fails", async () => {
+  const { host, registry, sessions, workspaceStore } = await createHost();
+  const workspace = await host.create("/project", "Project");
+  workspaceStore.failNextSave = true;
+  await assert.rejects(host.createSession(workspace.id, "Will roll back"), /workspace store unavailable/);
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, []);
+  assert.deepEqual(sessions.list(), []);
 });
 
 test("Workspace watch starts with an atomic baseline and ordered persisted changes", async () => {
