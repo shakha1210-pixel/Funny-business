@@ -11,7 +11,7 @@ Funny-business needs to work with multiple projects and repositories across Wind
 
 The DeepSeek Harness study shows useful patterns: durable Workspace identity, canonical path handling, opaque filesystem targets and versions, bounded reads, guarded atomic writes, reconnect-safe state projections, and separate filesystem and sandbox layers. These are design observations, not a mandate to copy its implementation.
 
-The current Funny-business prototype has a small plugin/service kernel but no Workspace domain, filesystem provider, permission broker, or execution sandbox. Those must be designed as separate capabilities.
+The current Funny-business prototype now has a Workspace registry, Session metadata registry, JSON snapshot stores, a transport-neutral host contract, and a loopback browser-development transport. It still has no filesystem provider, permission broker, or execution sandbox. Those remain separate capabilities and must not be inferred from Workspace registration.
 
 ## Decision (proposed)
 
@@ -99,13 +99,13 @@ Directory picking is an optional capability. Core Workspace APIs must remain usa
 - Atomic replacement and ACL/permission preservation need per-platform implementations.
 
 ## Initial implementation sequence
-1. Inspect and validate the existing core plugin/service code in a real checkout and CI.
-2. Implement a minimal Workspace domain and persistence contract with lifecycle tests.
-3. Add a backend-neutral filesystem contract and path-identity test suite.
+1. Harden Workspace and Session persistence, recovery, and cross-process coordination.
+2. Add revisioned Session state delivery and keep UI projections synchronized with host state.
+3. Define a backend-neutral filesystem contract and path-identity test suite.
 4. Implement a local filesystem provider with bounded reads and guarded atomic mutations.
 5. Add explicit access grants and audit events.
 6. Add platform sandbox adapters before enabling arbitrary code execution.
-7. Add transport/UI projections after host domain behavior is stable.
+7. Add native desktop and alternative transport adapters against the same host contracts.
 
 ## Required tests before calling the design production-ready
 - Workspace identity remains stable when paths contain symlink aliases.
