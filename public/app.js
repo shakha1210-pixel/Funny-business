@@ -4,6 +4,7 @@ let workspaces = [];
 let selectedWorkspaceId = null;
 let sessions = [];
 let selectedSessionId = null;
+let messages = [];
 let sessionEvents = null;
 
 function notify(message) {
@@ -164,6 +165,7 @@ function renderSessions() {
     row.addEventListener("click", () => {
       selectedSessionId = session.id;
       renderSessions();
+      void loadMessages();
       notify("Selected session: " + session.title);
     });
     container.append(row);
@@ -280,6 +282,7 @@ async function createSession() {
     selectedSessionId = result.session.id;
     await loadWorkspaces();
     await loadSessions();
+    await loadMessages();
     document.querySelector("#agent-input").focus();
     notify("Session created: " + result.session.title);
   } catch (error) {
@@ -295,6 +298,7 @@ document.querySelector("#resume-task").addEventListener("click", () => {
   if (!latest) return createSession();
   selectedSessionId = latest.id;
   loadSessions();
+  void loadMessages();
   document.querySelector("#agent-input").focus();
   notify("Resumed session: " + latest.title);
 });
@@ -311,11 +315,69 @@ document.querySelectorAll("[data-prompt]").forEach((button) => {
     document.querySelector("#agent-input").focus();
   });
 });
-document.querySelector("#send-prompt").addEventListener("click", () => {
+async function loadMessages() {
+  const container = document.querySelector("#agent-messages");
+  const emptyIcon = document.querySelector(".agent-empty-icon");
+  const emptyHeading = document.querySelector(".agent-body > h3");
+  const emptyCopy = document.querySelector(".agent-body > p");
+  const suggestions = document.querySelector(".suggestion-list");
+  container.replaceChildren();
+  messages = [];
+  if (!selectedSessionId) {
+    emptyIcon.hidden = false;
+    emptyHeading.hidden = false;
+    emptyCopy.hidden = false;
+    suggestions.hidden = false;
+    return;
+  }
+  try {
+    const result = await api("/api/sessions/" + encodeURIComponent(selectedSessionId) + "/messages");
+    messages = result.messages;
+    for (const message of messages) {
+      const bubble = document.createElement("article");
+      bubble.className = "message-bubble user-message";
+      const role = document.createElement("div");
+      role.className = "message-role";
+      role.textContent = "YOU";
+      const content = document.createElement("p");
+      content.textContent = message.content;
+      const time = document.createElement("time");
+      time.textContent = new Date(message.createdAt).toLocaleString();
+      bubble.append(role, content, time);
+      container.append(bubble);
+    }
+    const hasMessages = messages.length > 0;
+    emptyIcon.hidden = hasMessages;
+    emptyHeading.hidden = hasMessages;
+    emptyCopy.hidden = hasMessages;
+    suggestions.hidden = hasMessages;
+    container.scrollTop = container.scrollHeight;
+  } catch (error) {
+    notify(error instanceof Error ? error.message : "Could not load conversation");
+  }
+}
+
+document.querySelector("#send-prompt").addEventListener("click", async () => {
   const input = document.querySelector("#agent-input");
-  if (!input.value.trim()) return notify("Write a task first.");
+  const content = input.value.trim();
+  if (!content) return notify("Write a task first.");
   if (!selectedSessionId) return notify("Create or select a Session first.");
-  notify("Prompt captured in the selected Session. Agent runtime is not connected yet.");
+  const button = document.querySelector("#send-prompt");
+  button.disabled = true;
+  try {
+    await api("/api/sessions/" + encodeURIComponent(selectedSessionId) + "/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    input.value = "";
+    await loadMessages();
+    notify("Message saved to this Session. Agent execution is not connected yet.");
+  } catch (error) {
+    notify(error instanceof Error ? error.message : "Message could not be saved");
+  } finally {
+    button.disabled = false;
+  }
 });
 document.querySelector("#agent-input").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
