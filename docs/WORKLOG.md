@@ -407,3 +407,26 @@ Update this file with meaningful research, implementation, tests, and blockers.
 3. Implement selected Workspace and Session UI state with state-feed-driven updates.
 4. Add conversation/message persistence and an explicit agent-run lifecycle separately from Session metadata.
 5. Design filesystem access grants and safe file operations before exposing the file tree.
+
+
+
+## 2026-11-27 — Selected Workspace and Session UI wiring
+
+### Completed
+- Replaced hardcoded recent-task placeholders with Session records loaded from the selected Workspace.
+- Made Workspace cards keyboard-accessible selection controls with a visible selected state.
+- Connected the Workspace switcher to cycle through registered Workspaces.
+- Connected New task / Start a task to create and attach a durable Session through the local host API.
+- Added Session selection and resume behavior in the sidebar; prompt composition now requires a selected Session.
+- Kept the UI honest about the remaining limitation: prompts are not yet persisted as messages and the agent runtime is not connected.
+- Added focus-visible and selected-state styling for keyboard navigation.
+
+### Limitations
+- Selected Workspace/Session state is currently in-memory UI state and resets to the first Workspace on reload.
+- The UI refreshes Session lists after explicit actions; live Session state streaming is not implemented.
+- The agent composer does not yet create messages or invoke a model/tool.
+- Native folder picker and filesystem browsing are still pending.
+
+### Verification
+- UI changes are included in the GitHub Actions cross-platform typecheck/test/build pipeline; latest run is pending.
+- No local browser or desktop visual test was run in this environment.
