@@ -42,7 +42,7 @@ test("exposes Workspace list, create, rename, and unregister through the host AP
   const registry = new WorkspaceRegistry({
     store,
     sessions: { getHeader: async () => undefined },
-    canonicalizeDirectory: async (path) => path.replace(/\\/$/, ""),
+    canonicalizeDirectory: async (path) => path.endsWith("/") ? path.slice(0, -1) : path,
     createId: () => "workspace-api-test",
   });
   await registry.initialize();
