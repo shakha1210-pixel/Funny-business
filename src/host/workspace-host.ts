@@ -73,15 +73,16 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
 
   async createSession(workspaceId: string, title?: string): Promise<Session> {
     const operation = this.#creationTail.then(async () => {
+      await this.recoverPendingSessionCreation();
       const workspace = this.#registry.get(workspaceId);
       if (!workspace) throw new Error("Workspace not found: " + workspaceId);
       const sessionId = randomUUID();
       await this.#journal.save({ schemaVersion: 1, workspaceId, sessionId });
+
+      let session: Session;
       try {
-        const session = await this.#sessions.create(workspace.path, title, sessionId);
+        session = await this.#sessions.create(workspace.path, title, sessionId);
         await this.#registry.attachSession(workspaceId, session.id);
-        await this.#journal.clear();
-        return session;
       } catch (error) {
         try {
           await this.#sessions.discard(sessionId);
@@ -91,6 +92,11 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
         }
         throw error;
       }
+
+      // Attachment is committed. A failed journal cleanup must never trigger compensation
+      // that would delete a Session already referenced by the Workspace.
+      try { await this.#journal.clear(); } catch { /* recovered before the next operation or on startup */ }
+      return session;
     });
     this.#creationTail = operation.then(() => undefined, () => undefined);
     return operation;
