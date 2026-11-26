@@ -1,4 +1,4 @@
-import { Worker, isMainThread, workerData } from 'node:worker_threads';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -74,9 +74,17 @@ async function runBenchmark({ iterations, warmup, journal, synchronous, executio
 
     for (let i = 0; i < warmup; i += 1) runOne(i, false);
     const rssBefore = process.memoryUsage().rss;
+    const eventLoopProbeAt = performance.now();
+    let eventLoopTimerAt;
+    const eventLoopTimer = new Promise((resolve) => setTimeout(() => {
+      eventLoopTimerAt = performance.now();
+      resolve();
+    }, 0));
     const benchmarkStarted = performance.now();
     for (let i = warmup; i < warmup + iterations; i += 1) runOne(i, true);
     const benchmarkMs = performance.now() - benchmarkStarted;
+    await eventLoopTimer;
+    const eventLoopStallMs = eventLoopTimerAt - eventLoopProbeAt;
     const rssAfter = process.memoryUsage().rss;
     samples.sort((a, b) => a - b);
     const count = db.prepare('SELECT count(*) AS count FROM sessions').get().count;
@@ -95,6 +103,7 @@ async function runBenchmark({ iterations, warmup, journal, synchronous, executio
       warmup,
       openMs: Number(openMs.toFixed(3)),
       totalMs: Number(benchmarkMs.toFixed(3)),
+      synchronousEventLoopStallMs: Number(eventLoopStallMs.toFixed(3)),
       opsPerSecond: Number((iterations / (benchmarkMs / 1000)).toFixed(1)),
       transactionMs: {
         p50: Number(percentile(samples, 0.50).toFixed(4)),
@@ -128,15 +137,7 @@ if (!isMainThread) {
   }
 
   if (mode === 'sync') {
-    const probeAt = performance.now();
-    let timerFiredAt;
-    const timer = new Promise((resolve) => setTimeout(() => {
-      timerFiredAt = performance.now();
-      resolve();
-    }, 0));
     const result = await runBenchmark({ iterations, warmup, journal, synchronous, executionMode: 'main-thread-sync' });
-    await timer;
-    result.synchronousEventLoopStallMs = Number((timerFiredAt - probeAt).toFixed(3));
     console.log(JSON.stringify(result));
   } else {
     let ticks = 0;
