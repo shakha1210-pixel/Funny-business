@@ -7,6 +7,7 @@ let selectedSessionId = null;
 let messages = [];
 let filesystemGrant = null;
 let filesystemPath = "";
+let filesystemCursor = null;
 let sessionEvents = null;
 
 function notify(message) {
@@ -281,6 +282,7 @@ async function loadFilesystem() {
   preview.textContent = "";
   filesystemGrant = null;
   filesystemPath = "";
+  filesystemCursor = null;
   actions.replaceChildren();
   const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
   if (!workspace) {
@@ -342,13 +344,18 @@ async function revokeFilesystemAccess() {
   }
 }
 
-async function renderFilesystemDirectory() {
+async function renderFilesystemDirectory(append = false) {
   const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
   const browser = document.querySelector("#file-browser");
   const preview = document.querySelector("#file-preview");
   const requestedPath = filesystemPath;
   if (!workspace || !filesystemGrant) return;
-  browser.replaceChildren();
+  if (!append) {
+    filesystemCursor = null;
+    browser.replaceChildren();
+  } else {
+    browser.querySelector(".load-more-files")?.remove();
+  }
   preview.hidden = true;
   const toolbar = document.createElement("div");
   toolbar.className = "file-toolbar";
@@ -368,10 +375,12 @@ async function renderFilesystemDirectory() {
   }
   browser.append(toolbar);
   try {
-    const query = new URLSearchParams({ path: requestedPath });
+    const query = new URLSearchParams({ path: requestedPath, limit: "200" });
+    if (append && filesystemCursor) query.set("cursor", filesystemCursor);
     const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/files?" + query.toString());
     if (selectedWorkspaceId !== workspace.id || filesystemPath !== requestedPath) return;
-    if (!result.entries.length) {
+    filesystemCursor = result.nextCursor ?? null;
+    if (!result.entries.length && !append) {
       const empty = document.createElement("p");
       empty.className = "file-browser-empty";
       empty.textContent = "This folder is empty.";
@@ -402,6 +411,13 @@ async function renderFilesystemDirectory() {
         row.addEventListener("click", () => void previewWorkspaceFile(entry.name, entry.version));
       }
       browser.append(row);
+    }
+    if (filesystemCursor) {
+      const more = document.createElement("button");
+      more.className = "text-button load-more-files";
+      more.textContent = "Load more files";
+      more.addEventListener("click", () => void renderFilesystemDirectory(true));
+      browser.append(more);
     }
   } catch (error) {
     const failure = document.createElement("p");
