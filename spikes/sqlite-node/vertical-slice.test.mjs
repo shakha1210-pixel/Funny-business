@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -442,4 +442,110 @@ test('a COMMIT failure before durable commit is confirmed absent after reopen an
     replayed: false,
   });
   assert.equal(recovered.prepare('SELECT count(*) AS count FROM sessions').get().count, 1);
+});
+
+
+function runChild(source) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['--input-type=module', '-e', source], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.once('error', reject);
+    child.once('close', (status, signal) => resolve({ status, signal, stdout, stderr }));
+  });
+}
+
+test('a second process respects busy_timeout while another process owns the writer lock', async (t) => {
+  const { filename, db } = await withDatabase(t);
+  db.exec('CREATE TABLE writer_probe (id TEXT PRIMARY KEY)');
+  db.exec('BEGIN IMMEDIATE');
+
+  const child = `
+    import { DatabaseSync } from 'node:sqlite';
+    const db = new DatabaseSync(${JSON.stringify(filename)});
+    db.exec('PRAGMA busy_timeout = 150');
+    try {
+      db.exec('BEGIN IMMEDIATE');
+      db.exec('ROLLBACK');
+      console.log(JSON.stringify({ acquired: true }));
+    } catch (error) {
+      console.log(JSON.stringify({ acquired: false, errcode: error.errcode, errstr: error.errstr }));
+      process.exitCode = 0;
+    } finally {
+      db.close();
+    }
+  `;
+  const result = await runChild(child);
+  db.exec('ROLLBACK');
+
+  assert.equal(result.status, 0, result.stderr);
+  const outcome = JSON.parse(result.stdout.trim());
+  assert.equal(outcome.acquired, false);
+  assert.equal(Number(outcome.errcode) & 0xff, 5, JSON.stringify(outcome));
+});
+
+test('WAL readers see the last committed snapshot while a writer is active; competing writer waits then times out', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('CREATE TABLE writer_probe (id TEXT PRIMARY KEY)');
+  const reader = openDatabase(filename);
+  registerDatabase(reader);
+  reader.exec('PRAGMA busy_timeout = 120');
+
+  db.exec('BEGIN IMMEDIATE');
+  db.prepare('INSERT INTO writer_probe(id) VALUES (?)').run('uncommitted-row');
+
+  assert.equal(
+    reader.prepare('SELECT count(*) AS count FROM writer_probe').get().count,
+    0,
+    'WAL reader must not see the uncommitted write',
+  );
+
+  assert.throws(() => reader.exec('BEGIN IMMEDIATE'), (error) => {
+    return (Number(error.errcode) & 0xff) === 5;
+  });
+
+  db.exec('COMMIT');
+  assert.equal(
+    reader.prepare('SELECT count(*) AS count FROM writer_probe').get().count,
+    1,
+    'reader sees the row after the writer commits',
+  );
+
+  const mode = db.prepare('PRAGMA journal_mode').get().journal_mode;
+  assert.equal(mode.toLowerCase(), 'wal');
+});
+
+test('two independent writer processes serialize without losing committed rows', async (t) => {
+  const { filename, db } = await withDatabase(t);
+  db.exec('CREATE TABLE writer_probe (id TEXT PRIMARY KEY)');
+
+  const makeWriter = (id) => `
+    import { DatabaseSync } from 'node:sqlite';
+    const db = new DatabaseSync(${JSON.stringify(filename)});
+    db.exec('PRAGMA busy_timeout = 5000; BEGIN IMMEDIATE');
+    db.prepare('INSERT INTO writer_probe(id) VALUES (?)').run(${JSON.stringify(id)});
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 120);
+    db.exec('COMMIT');
+    db.close();
+    console.log('committed:' + ${JSON.stringify(id)});
+  `;
+
+  const results = await Promise.all([
+    runChild(makeWriter('writer-a')),
+    runChild(makeWriter('writer-b')),
+  ]);
+  for (const result of results) {
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /committed:writer-/);
+  }
+
+  const rows = db.prepare('SELECT id FROM writer_probe ORDER BY id').all();
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].id, 'writer-a');
+  assert.equal(rows[1].id, 'writer-b');
 });
