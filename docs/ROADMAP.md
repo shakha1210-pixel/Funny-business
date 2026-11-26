@@ -24,7 +24,8 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Initial Workspace domain registry and persistence contract.
 - [x] Atomic JSON snapshot persistence adapter (recovery journal and migrations pending).
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
-- [ ] Reconnect-safe Workspace state feed, crash recovery, and safe file operations.
+- [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
+- [ ] Workspace crash recovery and safe file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
 - [ ] Git status, diff, branch, worktree, commit.
