@@ -24,6 +24,7 @@ This directory is the canonical home for Funny-business project documentation.
 - [Workspace reverse engineering](research/WORKSPACE-REVERSE-ENGINEERING.md) — first-pass Workspace, persistence, filesystem, and UI findings.
 - [Storage coordination study](research/STORAGE-COORDINATION.md) — single-host locking, SQLite transactions, multi-process risks, and failure-test plan.
 - [Dependency reproducibility](research/DEPENDENCY-REPRODUCIBILITY.md) — pnpm lockfile bootstrap and frozen-install follow-up.
+- [SQLite binding evaluation](research/SQLITE-BINDING-EVALUATION.md) — Node 22, better-sqlite3, and Tauri/Rust persistence options; no binding selected yet.
 
 ## Documentation rules
 
