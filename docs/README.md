@@ -6,6 +6,7 @@ This directory is the canonical home for Funny-business project documentation.
 
 - [Instructions](INSTRUCTIONS.md) — contributor and AI-agent rules, documentation discipline, engineering workflow.
 - [Architecture](ARCHITECTURE.md) — system vision, boundaries, and subsystem design.
+- [Interface specification](INTERFACE-SPEC.md) — application frame, Workspace flows, UI state ownership, and first implementation milestones.
 - [Roadmap](ROADMAP.md) — phases, milestones, and pending work.
 - [Security baseline](SECURITY.md) — threat model and required controls.
 - [Work log](WORKLOG.md) — dated research, implementation, verification, and blockers.
