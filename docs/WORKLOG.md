@@ -191,3 +191,29 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Commit a pnpm lockfile and restore dependency caching.
 3. Translate the researched Workspace and interface behavior into Funny Business domain/UI specifications.
 4. Implement Workspace domain and persistence before wiring the UI projection.
+
+
+## 2026-11-27 — Plugin lifecycle hardening and first Workspace domain
+
+### Completed
+- Serialized PluginManager mount, unmount, and shutdown operations to prevent same-ID races and overlapping lifecycle mutations.
+- Changed failed plugin disposal behavior: the plugin remains visible in the manager, successful cleanup steps are not repeated, and failed cleanup steps can be retried by a later shutdown.
+- Added regression tests for concurrent mount, concurrent unmount, and disposal retry/failure visibility.
+- Added an independent WorkspaceRegistry domain with an injected persistence contract, Session-header reader, canonical-directory resolver, stable Workspace identity, canonical-path uniqueness, rename, Session attachment validation, and non-destructive unregister.
+- Mutations persist the next snapshot before publishing it in memory, so a failed store write does not expose an uncommitted state.
+- Added Workspace Registry tests for initialization, canonical uniqueness, Session cwd validation, persistence failure, and unregister behavior.
+- Added `docs/INTERFACE-SPEC.md` defining the independent Funny Business application frame, Workspace flows, state ownership, visual direction, and UI milestones.
+- Updated the package test command to include both core and Workspace suites.
+- Verified GitHub Actions run [45887644976](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45887644976): install, typecheck, all tests, and build succeeded on Ubuntu, macOS, and Windows.
+
+### Explicit limitations
+- Workspace persistence is currently an interface contract plus in-memory test adapter; no durable disk/database adapter or crash-recovery journal exists yet.
+- The UI specification is written, but no renderer, visual components, or desktop shell has been implemented yet.
+- The default directory canonicalizer uses realpath/stat; OS-specific symlink and path-edge tests still need dedicated coverage.
+- No pnpm lockfile has been committed yet; dependency caching remains disabled.
+
+### Next actions
+1. Implement a durable Workspace store with atomic snapshot writes, schema versioning, and interrupted-write recovery.
+2. Add path/symlink and persistence failure-injection tests on all three OS runners.
+3. Build the first UI shell and Workspace navigator against a host controller, keeping renderer state non-authoritative.
+4. Add a pnpm lockfile using a real pnpm install environment and re-enable CI caching.
