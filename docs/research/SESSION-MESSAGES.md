@@ -23,7 +23,8 @@ The store is split into one snapshot per Session. Filenames are SHA-256 digests 
 - Only existing active Sessions accept new user messages.
 - Empty/whitespace-only content is rejected.
 - Content is bounded to 64 KiB of UTF-8 by default.
-- Appends are serialized per Session in the process.
+- Appends are serialized per Session in the process; reads wait for pending appends on that Session so a completed write is visible to the next read.
+- The HTTP request envelope allows up to 512 KiB so a full 64 KiB UTF-8 message (including JSON escaping/metadata) can reach the stricter message-content limit.
 - Each update writes an exclusive temporary file, syncs it, atomically renames it, and syncs the containing directory on POSIX.
 - The application host lock supplies single-host ownership. The message store itself does not provide cross-process locking.
 - Reads return defensive copies and preserve append order.
