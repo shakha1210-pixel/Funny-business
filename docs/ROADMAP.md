@@ -6,9 +6,10 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Identify DeepSeek Harness as primary architecture reference.
 - [x] Read README, architecture, development, and safety documents.
 - [x] Confirm Funny-business repository and default branch.
-- [ ] Map relevant DeepSeek Harness packages and extension seams.
+- [x] Map relevant DeepSeek Harness Workspace, controller, filesystem, and UI seams.
 - [ ] Review licenses and third-party notices before any reuse.
-- [ ] Decide runtime, desktop shell, plugin model, and sandbox through ADRs.
+- [x] Propose Workspace/filesystem/security boundaries in ADR-0001.
+- [ ] Decide runtime, desktop shell, plugin model, and platform sandbox implementations through further ADRs.
 - [ ] Define threat model and supported OS matrix.
 
 ## Phase 1 — Minimal cross-platform core
