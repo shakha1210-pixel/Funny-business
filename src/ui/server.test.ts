@@ -33,7 +33,7 @@ test("serves only allowlisted local UI assets and health endpoint", async () => 
         cumulativeCpuTimeMicros: { user: number; system: number };
       };
     };
-    assert.match(diagnostics.runtime.node, /^v\\d+/);
+    assert.match(diagnostics.runtime.node, /^v\d+/);
     assert.equal(typeof diagnostics.runtime.platform, "string");
     assert.equal(typeof diagnostics.runtime.architecture, "string");
     assert.ok(diagnostics.runtime.uptimeMs >= 0);
