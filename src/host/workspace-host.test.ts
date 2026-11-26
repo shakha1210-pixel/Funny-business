@@ -1,24 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { WorkspaceRegistry, type Workspace, type WorkspaceStore } from "../core/workspace-registry.js";
+import { SessionRegistry, type Session, type SessionStore } from "../core/session-registry.js";
 import { RegistryWorkspaceHost } from "./workspace-host.js";
 
-class MemoryStore implements WorkspaceStore {
+class MemoryWorkspaceStore implements WorkspaceStore {
   #items: readonly Workspace[] = [];
   async load() { return this.#items; }
   async save(items: readonly Workspace[]) { this.#items = structuredClone(items); }
 }
 
-function createHost() {
-  let id = 0;
-  const registry = new WorkspaceRegistry({
-    store: new MemoryStore(),
-    sessions: { getHeader: async () => undefined },
+class MemorySessionStore implements SessionStore {
+  #items: readonly Session[] = [];
+  async load() { return this.#items; }
+  async save(items: readonly Session[]) { this.#items = structuredClone(items); }
+}
+
+async function createHost() {
+  let workspaceId = 0;
+  let sessionId = 0;
+  const sessions = new SessionRegistry({
+    store: new MemorySessionStore(),
     canonicalizeDirectory: async (path) => path,
-    createId: () => `workspace-${++id}`,
+    createId: () => `session-${++sessionId}`,
     now: () => 123,
   });
-  return registry.initialize().then(() => ({ registry, host: new RegistryWorkspaceHost(registry) }));
+  await sessions.initialize();
+  const registry = new WorkspaceRegistry({
+    store: new MemoryWorkspaceStore(),
+    sessions,
+    canonicalizeDirectory: async (path) => path,
+    createId: () => `workspace-${++workspaceId}`,
+    now: () => 123,
+  });
+  await registry.initialize();
+  return { registry, sessions, host: new RegistryWorkspaceHost(registry, sessions) };
 }
 
 test("registry adapter exposes the shared Workspace host contract", async () => {
@@ -32,6 +48,22 @@ test("registry adapter exposes the shared Workspace host contract", async () => 
   assert.equal(renamed.title, "Renamed");
   assert.equal(await host.unregister(created.id), true);
   assert.deepEqual(host.list(), []);
+});
+
+test("host creates durable Sessions and attaches only matching Workspace paths", async () => {
+  const { host, registry, sessions } = await createHost();
+  const workspace = await host.create("/project", "Project");
+  const created = await host.createSession(workspace.id, "Planning");
+  assert.equal(created.cwd, workspace.path);
+  assert.equal(created.title, "Planning");
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, [created.id]);
+  assert.deepEqual(host.listSessions(workspace.id).map(({ id }) => id), [created.id]);
+  assert.equal((await sessions.getHeader(created.id))?.cwd, workspace.path);
+
+  const renamed = await host.renameSession(created.id, "Architecture");
+  assert.equal(renamed.title, "Architecture");
+  const archived = await host.archiveSession(created.id);
+  assert.equal(archived.status, "archived");
 });
 
 test("Workspace watch starts with an atomic baseline and ordered persisted changes", async () => {
@@ -73,7 +105,7 @@ test("Workspace watch replaces an overflowing queue with an authoritative snapsh
   const replacement = await iterator.next(undefined);
   assert.equal(replacement.value?.type, "snapshot");
   assert.equal(replacement.value?.revision, 2);
-  assert.deepEqual(replacement.value?.workspaces?.map((workspace: Workspace) => workspace.path), ["/one", "/two"]);
+  assert.deepEqual(replacement.value?.workspaces?.map((workspace) => workspace.path), ["/one", "/two"]);
   await iterator.return?.(undefined);
 });
 
