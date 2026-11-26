@@ -80,3 +80,38 @@ test("exposes Workspace list, create, rename, and unregister through the host AP
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+
+test("rejects cross-origin Workspace mutations", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "funny-business-origin-"));
+  const { WorkspaceRegistry } = await import("../core/workspace-registry.js");
+  const registry = new WorkspaceRegistry({
+    store: {
+      items: [] as Workspace[],
+      async load() { return this.items; },
+      async save(items: readonly Workspace[]) { this.items = structuredClone(items); },
+    },
+    sessions: { getHeader: async () => undefined },
+    canonicalizeDirectory: async (path) => path,
+  });
+  await registry.initialize();
+  const server = createUiServer(directory, registry);
+  try {
+    const address = await listenUiServer(server, 0);
+    const response = await fetch(`http://${address.host}:${address.port}/api/workspaces`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://attacker.example",
+      },
+      body: JSON.stringify({ path: "/private/project" }),
+    });
+    assert.equal(response.status, 403);
+    assert.equal(registry.list().length, 0);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
