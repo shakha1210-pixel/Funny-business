@@ -841,3 +841,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added directory navigation, symlink/unsupported-entry disabled states, file size labels, and a bounded UTF-8 text preview using the metadata version token returned by listing.
 - Added stale-response guards so a slow directory/file request cannot paint content into a newly selected Workspace.
 - UI browser behavior is syntax-checked by CI; the server API and grant lifecycle have integration coverage. No full browser automation/e2e test is configured yet.
+
+
+### Filesystem pagination
+- Added page-sized directory listings (200 default, 500 max) with opaque cursors bound to the directory metadata version. A changed directory invalidates its cursor and requires restarting the listing.
+- Kept a hard 5,000-entry total enumeration cap to bound work and memory; pagination limits response size but does not yet support arbitrarily large directories.
+- Updated the browser explorer with a Load more flow and added core/API tests for cursor progression and stale-cursor rejection.
