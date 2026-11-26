@@ -21,6 +21,12 @@ jobs:
           ref: main
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
+      - name: Pin the exact Rust toolchain used for lock generation
+        shell: bash
+        run: |
+          version="$(rustc --version | awk '{print $2}')"
+          printf '[toolchain]\\nchannel = "%s"\\nprofile = "minimal"\\n' "$version" > spikes/sqlite-benchmark/rust/rust-toolchain.toml
+          cat spikes/sqlite-benchmark/rust/rust-toolchain.toml
       - name: Generate Cargo.lock
         working-directory: spikes/sqlite-benchmark/rust
         run: cargo generate-lockfile
@@ -35,7 +41,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add spikes/sqlite-benchmark/rust/Cargo.lock
+          git add spikes/sqlite-benchmark/rust/Cargo.lock spikes/sqlite-benchmark/rust/rust-toolchain.toml
           git commit -m "build: add Rust benchmark lockfile"
           git push origin "$branch"
           echo "name=$branch" >> "$GITHUB_OUTPUT"
@@ -46,5 +52,5 @@ jobs:
           gh pr create \
             --base main \
             --head "${{ steps.branch.outputs.name }}" \
-            --title "build: add Rust benchmark Cargo.lock" \
-            --body "Generates and verifies the SQLite benchmark dependency lockfile with the current stable Rust toolchain. Review the resolved dependency graph before merging."
+            --title "build: pin Rust benchmark toolchain and dependencies" \
+            --body "Generates Cargo.lock and pins the exact Rust toolchain used to generate it, then verifies a locked release build. Review the dependency graph and toolchain version before merging."
