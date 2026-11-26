@@ -23,7 +23,11 @@ async function main(): Promise<void> {
   await workspaces.initialize();
 
   const plugins = new PluginManager();
-  const workspaceHost = new RegistryWorkspaceHost(\n    workspaces,\n    sessions,\n    new JsonSessionCreationJournal(join(home, "session-creation.pending.json")),\n  );
+  const workspaceHost = new RegistryWorkspaceHost(
+    workspaces,
+    sessions,
+    new JsonSessionCreationJournal(join(home, "session-creation.pending.json")),
+  );
   await workspaceHost.recoverPendingSessionCreation();
   const server = createUiServer(undefined, workspaceHost);
   const address = await listenUiServer(server);
