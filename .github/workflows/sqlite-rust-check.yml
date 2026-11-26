@@ -1,0 +1,26 @@
+name: SQLite Rust spike check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "spikes/sqlite-benchmark/rust/**"
+      - ".github/workflows/sqlite-rust-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "spikes/sqlite-benchmark/rust/**"
+      - ".github/workflows/sqlite-rust-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Rust benchmark harness
+        working-directory: spikes/sqlite-benchmark/rust
+        run: cargo check
