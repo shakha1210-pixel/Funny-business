@@ -97,3 +97,37 @@ test("Session JSON store rejects corrupt and unsupported data", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+
+test("Session subscriptions capture a baseline and publish only persisted changes", async () => {
+  const { registry, store } = setup();
+  await registry.initialize();
+  const changes: Array<{ revision: number; kind: string; sessionId: string }> = [];
+  const subscription = registry.subscribe((change) => {
+    changes.push({ revision: change.revision, kind: change.kind, sessionId: change.sessionId });
+  });
+  assert.equal(subscription.snapshot.revision, 0);
+  assert.deepEqual(subscription.snapshot.sessions, []);
+
+  const created = await registry.create("/project", "Planning");
+  assert.deepEqual(changes, [{ revision: 1, kind: "created", sessionId: created.id }]);
+  await registry.rename(created.id, "Planning");
+  assert.equal(changes.length, 1);
+
+  store.failNextSave = true;
+  await assert.rejects(registry.rename(created.id, "Not committed"), /disk unavailable/);
+  assert.equal(changes.length, 1);
+
+  await registry.rename(created.id, "Architecture");
+  await registry.archive(created.id);
+  assert.deepEqual(changes, [
+    { revision: 1, kind: "created", sessionId: created.id },
+    { revision: 2, kind: "updated", sessionId: created.id },
+    { revision: 3, kind: "updated", sessionId: created.id },
+  ]);
+
+  subscription.unsubscribe();
+  await registry.discard(created.id);
+  assert.equal(changes.length, 3);
+  assert.equal(registry.getSnapshot().revision, 4);
+});
