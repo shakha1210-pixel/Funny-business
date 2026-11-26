@@ -193,13 +193,14 @@ export class WorkspaceFilesystem {
     return this.#exclusive(async () => {
       if (this.#initialized) return;
       const next = new Map<string, FilesystemGrant>();
-      for (const grant of await this.#store.load()) {
+      const persisted = await this.#store.load();
+      for (const grant of persisted) {
         const workspace = this.#workspaces.get(grant.workspaceId);
-        if (!workspace || workspace.path !== grant.rootPath) {
-          throw new Error("Filesystem grant references a missing or changed Workspace: " + grant.workspaceId);
-        }
+        // Stale grants are discarded, never rebound to a different Workspace path.
+        if (!workspace || workspace.path !== grant.rootPath) continue;
         next.set(grant.id, { ...grant, operations: [...grant.operations] });
       }
+      if (next.size !== persisted.length) await this.#store.save([...next.values()]);
       this.#grants.clear();
       for (const [id, grant] of next) this.#grants.set(id, grant);
       this.#initialized = true;
