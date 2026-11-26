@@ -289,3 +289,29 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Expose a native folder picker through a narrow typed capability.
 3. Run the same Workspace contract through desktop and browser-dev adapters.
 4. Compare runtime split options and capture cross-platform startup, idle resource, and package-size baselines.
+
+
+## 2026-11-27 — On-demand runtime diagnostics
+
+### Completed
+- Added a loopback-host `GET /api/diagnostics` endpoint reporting runtime version/platform, uptime, process memory breakdown, and cumulative CPU time.
+- Kept diagnostics on-demand: no timer, polling loop, profiler, or additional background worker is started.
+- Added endpoint tests for response shape and non-negative resource counters.
+- Added `docs/PERFORMANCE.md` with lightweight-runtime principles and a reproducible cross-platform baseline procedure.
+- Linked the performance guide from the documentation index.
+
+### Measurement notes
+- CPU counters are cumulative process user/system microseconds, not instantaneous utilization.
+- Memory counters are process snapshots, not total machine usage.
+- Numeric performance budgets remain unset until comparable Windows, macOS, and Linux baselines are measured.
+
+### Not done
+- No desktop shell or packaged binary exists yet.
+- No startup, idle, Workspace-load, or installer-size benchmark has been run.
+- Diagnostics have not yet been verified by CI after this change.
+
+### Next actions
+1. Verify diagnostics and tests in the cross-platform CI matrix.
+2. Build the first Tauri shell vertical slice and decide how the TypeScript host is packaged and supervised.
+3. Add an OS-native directory picker behind a narrow host capability.
+4. Measure idle resource use and cold startup before setting numeric budgets.
