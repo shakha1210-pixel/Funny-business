@@ -25,6 +25,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Atomic JSON snapshot persistence adapter (recovery journal and migrations pending).
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
+- [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
 - [ ] Workspace crash recovery and safe file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
@@ -34,7 +35,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [ ] Backup and restore.
 
 ## Phase 3 — Agent runtime and Model Hub
-- [ ] Agent task/session model and tool registry.
+- [ ] Agent conversation history, task/run model, and tool registry.
 - [ ] Permission broker.
 - [ ] Hosted model adapter.
 - [ ] Ollama and llama.cpp adapters.
@@ -83,4 +84,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Add a reconnect-safe Workspace state feed, Session domain/persistence, native folder-picker capability, and real selected-Workspace switching. Then implement the filesystem access-grant layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
+Complete Session crash reconciliation and durable cross-store consistency, then add selected-Workspace/Session UI state and a native folder-picker capability. Implement the filesystem access-grant and safe file-operation layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
