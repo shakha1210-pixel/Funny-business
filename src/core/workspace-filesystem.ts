@@ -22,6 +22,12 @@ export interface FilesystemEntry {
   readonly version?: string;
 }
 
+export interface FilesystemListing {
+  readonly entries: readonly FilesystemEntry[];
+  readonly directoryVersion: string;
+  readonly nextCursor?: string;
+}
+
 export interface FilesystemReadResult {
   readonly path: string;
   readonly content: string;
@@ -270,11 +276,35 @@ export class WorkspaceFilesystem {
     return { path: current, metadata };
   }
 
-  async list(workspaceId: string, relativePath = ""): Promise<readonly FilesystemEntry[]> {
+  async list(
+    workspaceId: string,
+    relativePath = "",
+    options: { readonly cursor?: string; readonly limit?: number } = {},
+  ): Promise<FilesystemListing> {
     const root = await this.#authorized(workspaceId, "list");
     const segments = resolveRelativePath(relativePath);
     const target = await this.#resolveExisting(root, segments);
     if (!target.metadata.isDirectory()) throw new Error("Filesystem target is not a directory");
+    const directoryVersion = versionOf(target.metadata);
+    const limit = options.limit ?? 200;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
+      throw new RangeError("Filesystem page limit must be between 1 and 500");
+    }
+    let offset = 0;
+    if (options.cursor) {
+      let decoded: unknown;
+      try { decoded = JSON.parse(Buffer.from(options.cursor, "base64url").toString("utf8")); }
+      catch { throw new Error("Invalid filesystem listing cursor"); }
+      if (typeof decoded !== "object" || decoded === null ||
+        !Number.isSafeInteger((decoded as Record<string, unknown>).offset) ||
+        typeof (decoded as Record<string, unknown>).version !== "string") {
+        throw new Error("Invalid filesystem listing cursor");
+      }
+      const cursor = decoded as { offset: number; version: string };
+      if (cursor.version !== directoryVersion) throw new Error("Directory changed during pagination; restart listing");
+      offset = cursor.offset;
+      if (offset < 0 || offset > this.#maxListEntries) throw new Error("Invalid filesystem listing cursor");
+    }
     const entries: FilesystemEntry[] = [];
     const directory = await opendir(target.path);
     for await (const item of directory) {
@@ -300,7 +330,21 @@ export class WorkspaceFilesystem {
         throw error;
       }
     }
-    return entries.sort((a, b) => a.name.localeCompare(b.name));
+    const afterListing = await lstat(target.path);
+    if (afterListing.isSymbolicLink() || versionOf(afterListing) !== directoryVersion) {
+      throw new Error("Directory changed during listing; retry");
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    const page = entries.slice(offset, offset + limit);
+    const nextOffset = offset + page.length;
+    const nextCursor = nextOffset < entries.length
+      ? Buffer.from(JSON.stringify({ offset: nextOffset, version: directoryVersion }), "utf8").toString("base64url")
+      : undefined;
+    return {
+      entries: page,
+      directoryVersion,
+      ...(nextCursor ? { nextCursor } : {}),
+    };
   }
 
   async read(workspaceId: string, relativePath: string, expectedVersion?: string): Promise<FilesystemReadResult> {
