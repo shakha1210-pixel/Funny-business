@@ -552,3 +552,18 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - GitHub Actions run [45894986543](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45894986543) passed the complete Ubuntu, macOS, and Windows matrix, including dependency installation, typecheck, tests, and build.
 - The first separate-process fixture used stdin EOF as its child lifetime signal and exited with Node code 13 on all platforms; it was replaced with a bounded child lifetime and the final matrix passed.
 - No local checkout/build was run in this environment.
+
+
+## 2026-11-27 — Dependency reproducibility bootstrap
+
+### Completed
+- Audited `package.json` and the cross-platform CI workflow: pnpm 10.0.0 is declared, but no pnpm lockfile is committed and CI currently resolves semver ranges on each run.
+- Added a manual-only GitHub Actions workflow that generates `pnpm-lock.yaml` with the declared pnpm version, disables dependency lifecycle scripts, and opens a reviewable PR from a separate automation branch.
+- Restricted the bootstrap workflow to manual dispatch from `main`; it does not write generated dependency state directly to the protected development branch.
+- Added `docs/research/DEPENDENCY-REPRODUCIBILITY.md` describing the current gap and the safe bootstrap/merge sequence.
+
+### Verification and limitations
+- Workflow and documentation files were committed to GitHub.
+- The lockfile has **not** been generated yet; a maintainer must manually run the bootstrap workflow and review its PR.
+- The existing CI remains unchanged until the generated lockfile is merged. Frozen installs and dependency caching are the next step after that merge.
+- No local install/build/test was run in this environment.
