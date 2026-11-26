@@ -50,7 +50,8 @@ Rebuild the useful interaction model of a modern AI workspace while keeping Funn
 | Process/notebook isolation | Sandbox supervisor |
 | Navigation, expanded tree, selected tab | UI client |
 | Search results and grouped/flat views | Derived UI projection |
-| Session/task execution | Agent runtime |
+| Session metadata and lifecycle | Host Session Registry |
+| Conversation/task execution | Agent runtime (not implemented) |
 
 The UI may cache and project host state but must not invent authoritative state or bypass access checks.
 
@@ -76,5 +77,5 @@ The UI may cache and project host state but must not invent authoritative state 
 2. Durable atomic JSON snapshot adapter. (Initial implementation; migration journal and cross-process locking remain open)
 3. Loopback host API for Workspace list/create/rename/unregister. (Implemented)
 4. Responsive UI shell and Workspace registration/list integration. (Prototype implemented)
-5. Reconnect-safe state feed and real Session/task projections. (Next)
+5. Session list/create/resume navigation backed by host metadata. (Prototype implemented; selected state is in-memory and live Session updates remain next)
 6. Add filesystem tree and agent activity only after permission and cancellation contracts exist.
