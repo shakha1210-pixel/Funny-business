@@ -66,7 +66,13 @@ test("terminal runs remain unchanged during startup recovery", () => {
   assert.deepEqual(recoverInterruptedAgentRun(completed, 150), completed);
 });
 
-test("running records require a start timestamp and transitions cannot predate it", () => {\n  const invalid = { ...run("running"), startedAt: undefined };\n  assert.throws(() => transitionAgentRun(invalid, "completed", 120), /must have a valid startedAt/);\n  assert.throws(() => transitionAgentRun(run("running"), "completed", 104), /cannot precede its start/);\n});\n\ntest("transition timestamps must be finite and not precede creation", () => {
+test("running records require a start timestamp and transitions cannot predate it", () => {
+  const invalid = { ...run("running"), startedAt: undefined };
+  assert.throws(() => transitionAgentRun(invalid, "completed", 120), /must have a valid startedAt/);
+  assert.throws(() => transitionAgentRun(run("running"), "completed", 104), /cannot precede its start/);
+});
+
+test("transition timestamps must be finite and not precede creation", () => {
   assert.throws(() => transitionAgentRun(run(), "running", 99), /must be finite/);
   assert.throws(() => transitionAgentRun(run(), "running", Number.NaN), /must be finite/);
 });
