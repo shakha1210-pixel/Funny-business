@@ -87,4 +87,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Design cross-process storage coordination before allowing multiple host processes to write the JSON stores; decide whether to retain JSON behind a single-host guard or move to a transactional store such as SQLite. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
+Validate the [storage coordination study](research/STORAGE-COORDINATION.md): choose an OS-backed single-host lock for the interim runtime or a transactional shared store before allowing multiple host processes. Add and commit a pnpm lockfile, then restore dependency caching. Next define filesystem access grants and safe file operations before exposing file browsing. The desktop milestone remains a Tauri vertical slice against the same host contract.
