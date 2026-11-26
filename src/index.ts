@@ -4,6 +4,7 @@ import { PluginManager } from "./core/plugin-manager.js";
 import { WorkspaceRegistry } from "./core/workspace-registry.js";
 import { JsonWorkspaceStore } from "./core/workspace-store-json.js";
 import { createUiServer, listenUiServer } from "./ui/server.js";
+import { RegistryWorkspaceHost } from "./host/workspace-host.js";
 
 async function main(): Promise<void> {
   const home = process.env.FUNNY_HOME ?? join(homedir(), ".funny-business");
@@ -15,7 +16,8 @@ async function main(): Promise<void> {
   await workspaces.initialize();
 
   const plugins = new PluginManager();
-  const server = createUiServer(undefined, workspaces);
+  const workspaceHost = new RegistryWorkspaceHost(workspaces);
+  const server = createUiServer(undefined, workspaceHost);
   const address = await listenUiServer(server);
   console.info("Funny-business core starting");
   console.info("Mounted plugins:", plugins.list().length);
