@@ -8,8 +8,9 @@
 
 Compare the cost of one identical metadata transaction through:
 
-1. Node.js 22 built-in `node:sqlite` / `DatabaseSync`.
-2. Rust `rusqlite` 0.32.1 with the bundled SQLite build.
+1. Node.js 22 built-in `node:sqlite` / `DatabaseSync` on the main thread.
+2. The same Node adapter inside a dedicated worker thread, measuring main-thread heartbeat responsiveness.
+3. Rust `rusqlite` 0.32.1 with the bundled SQLite build.
 
 This is a storage-adapter microbenchmark, not a complete Node-sidecar versus Tauri-host benchmark. It does not include Tauri startup, IPC, renderer, native host command dispatch, sidecar startup, or package size.
 
@@ -32,7 +33,8 @@ The Rust and Node harnesses intentionally use the same schema, constraints, writ
 Node (requires a Node release with `node:sqlite`):
 
 ```sh
-node spikes/sqlite-benchmark/node.mjs --iterations=5000 --warmup=500 --journal=WAL --synchronous=FULL
+node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=5000 --warmup=500 --journal=WAL --synchronous=FULL
+node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=5000 --warmup=500 --journal=WAL --synchronous=FULL
 ```
 
 Rust (requires the Rust stable toolchain and a C build toolchain for bundled SQLite):
@@ -48,7 +50,7 @@ Supported options:
 - `journal`: `WAL` or `DELETE`.
 - `synchronous`: `FULL` or `NORMAL`.
 
-The manual GitHub Actions workflow runs both adapters on Ubuntu, Windows, and macOS and uploads one JSON artifact per OS:
+The manual GitHub Actions workflow runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS and uploads machine-readable JSON results per OS:
 [SQLite runtime benchmark workflow](../../.github/workflows/sqlite-benchmark.yml).
 
 ## Reported measurements
@@ -56,11 +58,11 @@ The manual GitHub Actions workflow runs both adapters on Ubuntu, Windows, and ma
 - Database open + initial PRAGMA setup time.
 - Total measured wall time and transactions/second.
 - Per-transaction p50, p95, p99, and max latency.
-- Node-only synchronous event-loop stall estimate and RSS delta.
+- Node synchronous event-loop stall estimate, worker-thread main-loop heartbeat delay/tick count, and RSS delta.
 - OS, architecture, runtime, journal mode, synchronous mode, iteration count.
 - Verified final Session row count.
 
-The Node event-loop figure is a deliberately simple timer-delay probe around a synchronous benchmark loop. It estimates the event-loop stall caused by this workload; it is not a production event-loop histogram. RSS delta is process-wide and can be noisy.
+The Node synchronous event-loop figure is a timer-delay probe scheduled immediately before the measured transaction loop; it estimates how long that loop prevents the owning thread from servicing timers. In worker mode, the same field describes worker-thread blocking while a separate 10 ms main-thread heartbeat reports maximum scheduling delay and tick count. This is a focused responsiveness probe, not a production event-loop histogram. RSS delta is process-wide and can be noisy.
 
 ## Interpretation rules
 
@@ -75,12 +77,12 @@ The Node event-loop figure is a deliberately simple timer-delay probe around a s
 ## Current status and next steps
 
 - Harnesses, a focused Rust compile-check, and a manual three-OS benchmark workflow are committed.
-- The Rust compile-check passed its first CI run [45904796532](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45904796532); the final workflow/artifact changes are still receiving CI validation.
+- The Rust compile-check passed its first CI run [45904796532](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45904796532). The Node harness now measures both main-thread blocking and worker-thread isolation; the updated manual workflow still needs to be run to produce comparable artifacts.
 - No benchmark result is recorded yet; the manual workflow must be run from GitHub Actions.
 - First verify compilation and output shape on all three OS.
 - Commit a generated Cargo.lock and pin the Rust toolchain after the first successful workflow run.
 - Run at least five repetitions per OS and compare median throughput and tail latency.
-- Add a bounded concurrent-reader workload and a worker-thread Node variant before choosing database thread ownership.
+- Run at least five repetitions per OS, then add a bounded concurrent-reader workload before choosing database thread ownership.
 - Later compare a minimal Tauri Rust host against a Node sidecar; do not equate this adapter microbenchmark with the full desktop runtime decision.
 
 **Decision:** No binding or runtime selected. JSON remains the active application persistence implementation.
