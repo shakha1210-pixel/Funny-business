@@ -45,10 +45,10 @@ pnpm test
 pnpm dev
 ```
 
-`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace records are stored under `~/.funny-business/workspaces.json` by default; set `FUNNY_HOME` to use another data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
+`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace and Session metadata are stored under `~/.funny-business/` by default; set `FUNNY_HOME` to use another data directory. The prototype can register an existing folder by entering its absolute path and create/list Sessions for a Workspace. The composer does not yet persist messages or invoke an agent. Git and model integrations remain placeholders; native folder picking and safe file browsing are not implemented.
 
 ## Research and attribution
 
-We study public architecture and documented extension concepts from DeepSeek Harness. This is an independent implementation; no DeepSeek Harness source files are copied into this initial scaffold. Any future source reuse must preserve license and copyright notices and be recorded in third-party notices.
+We study public architecture and documented extension concepts from DeepSeek Harness. This is an independent implementation; no DeepSeek Harness source files have been copied into the current implementation. Any future source reuse must preserve license and copyright notices and be recorded in third-party notices.
 
 Project licensing will be finalized before redistribution.
