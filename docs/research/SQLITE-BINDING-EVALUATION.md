@@ -76,7 +76,7 @@ Do not select a binding yet. Carry these two paths into the vertical-slice bench
 - Keep domain invariants and transaction semantics in one shared specification and contract-test suite. Do not fork Workspace/Session business rules between Rust and TypeScript.
 - Do not expose the Tauri SQL plugin's general guest SQL API to the renderer.
 
-The vertical slice must compare the full host choice, not just raw SQL speed. A Node sidecar with a native addon and a native Rust host have different process, startup, packaging, and security costs. The initial same-schema Node `node:sqlite` and Rust `rusqlite` microbenchmark harness is in `spikes/sqlite-benchmark/`; its methodology and limitations are recorded in [SQLite runtime benchmark](SQLITE-RUNTIME-BENCHMARK.md).
+The current microbenchmark compares main-thread Node, worker-thread Node, and Rust transaction execution; use the worker-thread result to estimate the cost of isolating synchronous SQLite from the UI/event loop. The vertical slice must compare the full host choice, not just raw SQL speed. A Node sidecar with a native addon and a native Rust host have different process, startup, packaging, and security costs. The initial same-schema Node `node:sqlite` and Rust `rusqlite` microbenchmark harness is in `spikes/sqlite-benchmark/`; its methodology and limitations are recorded in [SQLite runtime benchmark](SQLITE-RUNTIME-BENCHMARK.md).
 
 ## Required spike and acceptance matrix
 
