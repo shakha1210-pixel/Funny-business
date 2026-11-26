@@ -490,3 +490,31 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Workspace and Session JSON snapshots remain separate stores; there is no cross-process lock, schema migration framework, or pnpm lockfile yet.
 - Session state streaming, filesystem access grants/provider, native folder picker, Tauri shell, conversation persistence, and agent execution remain unimplemented.
 - No local checkout/build was run; the cited GitHub Actions run is the observed cross-platform verification.
+
+
+## 2026-11-27 — Revisioned Session feed and live browser updates
+
+### Completed
+- Added process-local monotonic revisions and typed created/updated/removed events to SessionRegistry; events publish only after the Session snapshot is persisted and committed.
+- Added synchronous subscribe-plus-baseline snapshots to prevent a Session feed from missing a change between initial load and listener registration.
+- Added a Workspace-scoped host Session feed that combines Session changes with Workspace membership changes, uses bounded queues, replaces overflow with an authoritative snapshot, and supports AbortSignal cancellation/cleanup.
+- Exposed the feed through a loopback Server-Sent Events endpoint at `/api/workspaces/:id/sessions/events`; disconnects abort the underlying host subscription.
+- Connected the browser Session list to EventSource snapshots and incremental Session changes, including automatic reconnect behavior supplied by the browser runtime.
+- Added registry, host, overflow, cancellation, and HTTP event-stream tests.
+
+### Verification
+- GitHub Actions run [45894245336](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45894245336) passed dependency installation, typecheck, tests, and build on Ubuntu, Windows, and macOS.
+- Earlier CI attempts caught an implicit-any type in a feed test assertion; the assertion was explicitly typed and the final matrix passed.
+- No local checkout/build or manual visual browser test was run.
+
+### Guarantees and limitations
+- Session feed revisions are process-local and restart from zero; they are not durable event-log offsets.
+- Feed state is authoritative only for the current host process. Multi-process writes and cross-process event delivery remain unsupported.
+- The SSE route is loopback-only through the existing server binding; no remote transport or Tauri event adapter exists yet.
+- Selected Workspace and Session navigation state remains in-memory in the browser UI.
+
+### Next actions
+1. Design and implement safe cross-process storage coordination or a single-host guard before supporting multiple host processes.
+2. Add a pnpm lockfile and restore deterministic dependency caching.
+3. Define filesystem access grants and safe file operations before exposing file browsing.
+4. Continue toward the Tauri vertical slice only after host capability contracts remain stable.
