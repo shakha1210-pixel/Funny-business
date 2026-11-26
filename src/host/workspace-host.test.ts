@@ -255,7 +255,7 @@ test("Session watch replaces an overflowing queue with the current Workspace sna
   const replacement = await iterator.next(undefined);
   assert.equal(replacement.value?.type, "snapshot");
   assert.equal(replacement.value?.sessions?.length, 2);
-  assert.deepEqual(replacement.value?.sessions?.map(({ title }) => title), ["Second", "First"]);
+  assert.deepEqual(replacement.value?.sessions?.map((session: Session) => session.title), ["Second", "First"]);
   await iterator.return?.(undefined);
 });
 
