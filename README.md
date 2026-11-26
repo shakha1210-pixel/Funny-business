@@ -42,7 +42,10 @@ corepack enable
 pnpm install
 pnpm build
 pnpm test
+pnpm dev
 ```
+
+`pnpm dev` starts the local-only workspace prototype at `http://127.0.0.1:4317` (or the port set by `PORT`). Workspace records are stored under `~/.funny-business/workspaces.json` by default; set `FUNNY_HOME` to use another data directory. The first prototype can register an existing folder by entering its absolute path. Git, model, Session, and agent panels are still presentation placeholders.
 
 ## Research and attribution
 
