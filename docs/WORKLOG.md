@@ -757,3 +757,17 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Benchmark probe interpretation correction
 - Corrected the summarizer to report main-thread synchronous stall for Node sync mode and main-thread heartbeat delay for worker mode. The worker's own event-loop stall is not used as a UI-responsiveness proxy.
 - Extended the summarizer test fixture to prove that worker-thread results use the main-thread heartbeat measurement even when the worker's internal stall is larger.
+
+
+## 2026-11-27 — Benchmark summarizer validation and probe semantics
+
+### Completed
+- Added cross-platform tests for grouping Node and Rust benchmark output, OS-label normalization, medians/ranges, expected repetition counts, and malformed JSON handling.
+- Made the test invoke the summarizer through `fileURLToPath(new URL(...))` so Windows does not receive a malformed drive-prefixed URL path.
+- Corrected the main/UI-thread responsiveness column: main-thread mode reports its synchronous stall estimate; worker mode reports the main-thread heartbeat delay, never the worker's own stall.
+- Added the summarizer tests to the Ubuntu/Windows/macOS CI matrix.
+
+### Verification
+- The corrected test revision passed the Ubuntu and macOS CI jobs; Windows typecheck, tests, summarizer validation, benchmark smoke tests, and build were progressing at the time of this entry.
+- Earlier CI attempts exposed test-fixture assumptions (repetition counts and Windows URL path conversion); those were fixed rather than suppressing the failing checks.
+- No benchmark measurements have been collected; no SQLite binding/runtime decision has changed.
