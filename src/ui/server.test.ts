@@ -29,3 +29,54 @@ test("serves only allowlisted local UI assets and health endpoint", async () => 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+
+test("exposes Workspace list, create, rename, and unregister through the host API", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "funny-business-api-"));
+  const { WorkspaceRegistry } = await import("../core/workspace-registry.js");
+  const store = {
+    items: [],
+    async load() { return this.items; },
+    async save(items: typeof this.items) { this.items = structuredClone(items); },
+  };
+  const registry = new WorkspaceRegistry({
+    store,
+    sessions: { getHeader: async () => undefined },
+    canonicalizeDirectory: async (path) => path.replace(/\\/$/, ""),
+    createId: () => "workspace-api-test",
+  });
+  await registry.initialize();
+  const server = createUiServer(directory, registry);
+  try {
+    const address = await listenUiServer(server, 0);
+    const base = `http://${address.host}:${address.port}`;
+    const createdResponse = await fetch(base + "/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/projects/demo", title: "Demo" }),
+    });
+    assert.equal(createdResponse.status, 201);
+    const created = await createdResponse.json() as { workspace: { id: string; title: string } };
+    assert.equal(created.workspace.title, "Demo");
+
+    const list = await fetch(base + "/api/workspaces");
+    const listed = await list.json() as { workspaces: Array<{ id: string }> };
+    assert.equal(listed.workspaces.length, 1);
+
+    const renamed = await fetch(base + "/api/workspaces/workspace-api-test", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Renamed" }),
+    });
+    assert.equal(renamed.status, 200);
+
+    const removed = await fetch(base + "/api/workspaces/workspace-api-test", { method: "DELETE" });
+    assert.equal(removed.status, 200);
+    assert.equal(registry.list().length, 0);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
