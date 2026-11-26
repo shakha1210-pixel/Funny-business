@@ -20,7 +20,9 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Add initial tests and cross-platform CI for Linux, Windows, and macOS.
 
 ## Phase 2 — Workspace and repositories
-- [ ] Workspace registry and safe file operations.
+- [x] Initial Workspace domain registry and persistence contract (durable adapter pending).
+- [ ] Durable Workspace store, crash recovery, and safe file operations.
+- [x] Draft application interface and Workspace interaction specification.
 - [ ] Git status, diff, branch, worktree, commit.
 - [ ] GitHub auth and scoped repository permissions.
 - [ ] Selective project context retrieval.
@@ -74,4 +76,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Harden the existing plugin lifecycle (concurrency, idempotent disposal, failure visibility) and add a committed pnpm lockfile. Then define the independent Workspace domain and UI behavior from the reverse-engineering findings.
+Implement durable Workspace persistence and host controller, then build the first UI shell and Workspace navigator against that API. Add the pnpm lockfile and restore dependency caching.
