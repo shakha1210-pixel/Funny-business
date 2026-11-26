@@ -35,7 +35,7 @@ A local-first AI workspace and autonomous development environment combining a mo
 
 ## Host adapter boundary
 
-The application core exposes transport-neutral capability contracts. Renderers and transports depend on these contracts, not directly on domain registries, persistence stores, or operating-system APIs. The initial `WorkspaceHost` contract is adapted from `WorkspaceRegistry` and consumed by the loopback HTTP development transport. A future Tauri adapter must expose the same contract semantics through narrow typed commands; it must not duplicate Workspace policy or grant the renderer direct filesystem/process authority. Keep host adapters thin and test each adapter against the same contract suite.
+The application core exposes transport-neutral capability contracts. Renderers and transports depend on these contracts, not directly on domain registries, persistence stores, or operating-system APIs. The initial `WorkspaceHost` contract is adapted from `WorkspaceRegistry` and consumed by the loopback HTTP development transport. The registry publishes monotonically revisioned changes only after persistence succeeds. A watch subscription captures its baseline atomically with listener registration, then delivers ordered changes; bounded queues collapse overflow into a complete authoritative snapshot, and AbortSignal cancellation disposes the listener. A future Tauri adapter must expose the same contract semantics through narrow typed commands; it must not duplicate Workspace policy or grant the renderer direct filesystem/process authority. Keep host adapters thin and test each adapter against the same contract suite.
 
 ## Core subsystems
 
