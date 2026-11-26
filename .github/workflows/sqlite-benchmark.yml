@@ -63,6 +63,13 @@ jobs:
             node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations="$BENCH_ITERATIONS" --warmup="$BENCH_WARMUP" --journal=WAL --synchronous=FULL | tee "benchmark-results/node-worker-${run}.json"
             (cd spikes/sqlite-benchmark/rust && cargo run --release --locked -- --iterations="$BENCH_ITERATIONS" --warmup="$BENCH_WARMUP" --journal=WAL --synchronous=FULL) | tee "benchmark-results/rust-${run}.json"
           done
+      - name: Summarize this OS benchmark results
+        shell: bash
+        env:
+          BENCH_REPEATS: ${{ inputs.repeats }}
+        run: |
+          set -euo pipefail
+          node spikes/sqlite-benchmark/summarize.mjs benchmark-results --expected-repeats="$BENCH_REPEATS" | tee benchmark-results/summary.md
       - uses: actions/upload-artifact@v4
         with:
           name: sqlite-benchmark-${{ matrix.os }}
