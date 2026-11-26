@@ -5,6 +5,8 @@ let selectedWorkspaceId = null;
 let sessions = [];
 let selectedSessionId = null;
 let messages = [];
+let filesystemGrant = null;
+let filesystemPath = "";
 let sessionEvents = null;
 
 function notify(message) {
@@ -129,6 +131,7 @@ async function selectWorkspace(id) {
   renderWorkspaces();
   await loadSessions();
   await loadMessages();
+  await loadFilesystem();
   connectSessionFeed();
 }
 
@@ -238,6 +241,7 @@ async function loadWorkspaces() {
     renderWorkspaces();
     await loadSessions();
     await loadMessages();
+    await loadFilesystem();
     connectSessionFeed();
   } catch {
     notify("Could not load Workspace data from the local host.");
@@ -267,6 +271,165 @@ document.querySelector("#workspace-form").addEventListener("submit", async (even
     submit.disabled = false;
   }
 });
+
+async function loadFilesystem() {
+  const browser = document.querySelector("#file-browser");
+  const actions = document.querySelector("#filesystem-actions");
+  const preview = document.querySelector("#file-preview");
+  browser.replaceChildren();
+  preview.hidden = true;
+  preview.textContent = "";
+  filesystemGrant = null;
+  filesystemPath = "";
+  actions.replaceChildren();
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  if (!workspace) {
+    browser.textContent = "Select a Workspace first.";
+    return;
+  }
+  try {
+    const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/access-grants");
+    filesystemGrant = result.grants.find((grant) => grant.operations.includes("list")) ?? null;
+    if (!filesystemGrant) {
+      const grantButton = document.createElement("button");
+      grantButton.className = "secondary-button small";
+      grantButton.textContent = "Grant read-only access";
+      grantButton.addEventListener("click", grantFilesystemAccess);
+      actions.append(grantButton);
+      browser.textContent = "No file access grant. Grant list/read access to inspect this Workspace. No files are modified.";
+      return;
+    }
+    const revokeButton = document.createElement("button");
+    revokeButton.className = "text-button";
+    revokeButton.textContent = "Revoke access";
+    revokeButton.addEventListener("click", revokeFilesystemAccess);
+    actions.append(revokeButton);
+    await renderFilesystemDirectory();
+  } catch (error) {
+    browser.textContent = error instanceof Error ? error.message : "Filesystem service unavailable.";
+  }
+}
+
+async function grantFilesystemAccess() {
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  if (!workspace) return;
+  try {
+    await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/access-grants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operations: ["list", "read"] }),
+    });
+    notify("Read-only file access granted for " + workspace.title);
+    await loadFilesystem();
+  } catch (error) {
+    notify(error instanceof Error ? error.message : "Could not grant file access");
+  }
+}
+
+async function revokeFilesystemAccess() {
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  if (!workspace || !filesystemGrant) return;
+  try {
+    await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/access-grants/" + encodeURIComponent(filesystemGrant.id) + "/revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    notify("Workspace file access revoked");
+    await loadFilesystem();
+  } catch (error) {
+    notify(error instanceof Error ? error.message : "Could not revoke file access");
+  }
+}
+
+async function renderFilesystemDirectory() {
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  const browser = document.querySelector("#file-browser");
+  const preview = document.querySelector("#file-preview");
+  if (!workspace || !filesystemGrant) return;
+  browser.replaceChildren();
+  preview.hidden = true;
+  const toolbar = document.createElement("div");
+  toolbar.className = "file-toolbar";
+  const pathLabel = document.createElement("span");
+  pathLabel.className = "file-path";
+  pathLabel.textContent = "/" + filesystemPath;
+  toolbar.append(pathLabel);
+  if (filesystemPath) {
+    const up = document.createElement("button");
+    up.className = "text-button";
+    up.textContent = "Up";
+    up.addEventListener("click", () => {
+      filesystemPath = filesystemPath.split("/").slice(0, -1).join("/");
+      void renderFilesystemDirectory();
+    });
+    toolbar.append(up);
+  }
+  browser.append(toolbar);
+  try {
+    const query = new URLSearchParams({ path: filesystemPath });
+    const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/files?" + query.toString());
+    if (!result.entries.length) {
+      const empty = document.createElement("p");
+      empty.className = "file-browser-empty";
+      empty.textContent = "This folder is empty.";
+      browser.append(empty);
+      return;
+    }
+    for (const entry of result.entries) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "file-entry";
+      row.disabled = entry.kind === "symlink" || entry.kind === "other";
+      const glyph = document.createElement("span");
+      glyph.className = "file-entry-kind";
+      glyph.textContent = entry.kind === "directory" ? "▰" : entry.kind === "symlink" ? "↗" : "·";
+      const name = document.createElement("span");
+      name.className = "file-entry-name";
+      name.textContent = entry.name;
+      const detail = document.createElement("span");
+      detail.className = "file-entry-detail";
+      detail.textContent = entry.kind === "file" ? formatBytes(entry.size) : entry.kind;
+      row.append(glyph, name, detail);
+      if (entry.kind === "directory") {
+        row.addEventListener("click", () => {
+          filesystemPath = [filesystemPath, entry.name].filter(Boolean).join("/");
+          void renderFilesystemDirectory();
+        });
+      } else if (entry.kind === "file" && filesystemGrant.operations.includes("read")) {
+        row.addEventListener("click", () => void previewWorkspaceFile(entry.name, entry.version));
+      }
+      browser.append(row);
+    }
+  } catch (error) {
+    const failure = document.createElement("p");
+    failure.className = "file-browser-empty";
+    failure.textContent = error instanceof Error ? error.message : "Could not list this directory.";
+    browser.append(failure);
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+async function previewWorkspaceFile(name, version) {
+  const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
+  if (!workspace || !filesystemGrant?.operations.includes("read")) return;
+  const path = [filesystemPath, name].filter(Boolean).join("/");
+  const query = new URLSearchParams({ path, ...(version ? { version } : {}) });
+  const preview = document.querySelector("#file-preview");
+  try {
+    const result = await api("/api/workspaces/" + encodeURIComponent(workspace.id) + "/file?" + query.toString());
+    preview.textContent = result.file.content;
+    preview.hidden = false;
+    preview.dataset.path = result.file.path;
+    preview.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  } catch (error) {
+    notify(error instanceof Error ? error.message : "Could not read file");
+  }
+}
 
 async function createSession() {
   const workspace = workspaces.find((item) => item.id === selectedWorkspaceId);
