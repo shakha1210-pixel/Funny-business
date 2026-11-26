@@ -739,3 +739,16 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification and limitations
 - The workflow change is committed; its push-triggered CI validation is pending.
 - The manual benchmark still requires a merged Cargo.lock before it can run with `--locked`. No measurements or runtime decision have been made.
+
+
+## 2026-11-27 — SQLite benchmark artifact analysis
+
+### Completed
+- Added a dependency-free Node summarizer for the per-OS benchmark JSON artifacts.
+- Groups samples by OS, adapter, and execution mode; reports median throughput and run range, median p95/p99 transaction latency, database open time, and available responsiveness probes.
+- Normalizes Node platform labels to the Rust labels and flags groups with missing or unexpected repetition counts instead of silently treating partial results as complete.
+- Documented the download/extract/run procedure in the benchmark research note.
+
+### Verification and limitations
+- The summarizer is committed; push-triggered CI is pending.
+- No benchmark artifacts have been collected. The script does not make a runtime decision and must only be used with matching workload/settings.
