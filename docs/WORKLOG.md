@@ -77,3 +77,15 @@ Update this file with meaningful research, implementation, tests, and blockers.
 2. Inspect filesystem policy/local backend implementation and tests, especially symlink containment and stale-write guards.
 3. Inspect UI workspace tree/picker state and race handling.
 4. Write a Funny Business Workspace ADR and implement the first independent domain module with tests.
+
+## 2026-11-27 — Documentation structure cleanup
+
+### Completed
+- Added `docs/README.md` as the central documentation index.
+- Added `docs/INSTRUCTIONS.md` for contributor and AI-agent rules, research discipline, security expectations, and change workflow.
+- Updated the root `README.md` to act as a concise project entry point linking to the documentation index.
+- Confirmed project Markdown documents are organized under `docs/`, with upstream research under `docs/research/`.
+
+### Not done
+- No bulk merge into one oversized Markdown file; each topic retains one canonical document.
+- No ADR has been created yet; `docs/adr/` will be introduced when the first architecture decision is ready.
