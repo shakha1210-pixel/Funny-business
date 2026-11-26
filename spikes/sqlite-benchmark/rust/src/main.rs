@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "{{\"benchmark\":\"sqlite-session-create-transaction-v1\",\"adapter\":\"rusqlite\",\"runtime\":\"rust\",\"platform\":\"{}\",\"arch\":\"{}\",\"journal\":\"{}\",\"synchronous\":\"{}\",\"iterations\":{},\"warmup\":{},\"openMs\":{:.3},\"summedTransactionMs\":{:.3},\"transactionMs\":{{\"p50\":{:.4},\"p95\":{:.4},\"p99\":{:.4},\"max\":{:.4}}},\"verifiedSessionRows\":{}}}",
         env::consts::OS, env::consts::ARCH, journal, synchronous, iterations, warmup,
-        open_ms, elapsed_ms, percentile(&samples, 0.50), percentile(&samples, 0.95),
+        open_ms, elapsed_ms, iterations as f64 / (elapsed_ms / 1000.0), percentile(&samples, 0.50), percentile(&samples, 0.95),
         percentile(&samples, 0.99), samples[samples.len() - 1], verified
     );
 
