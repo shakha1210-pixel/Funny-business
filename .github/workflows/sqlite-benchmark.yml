@@ -11,6 +11,10 @@ on:
         description: Warmup transactions per adapter
         required: true
         default: "500"
+      repeats:
+        description: Independent repetitions per adapter and OS
+        required: true
+        default: "5"
 
 permissions:
   contents: read
@@ -33,16 +37,22 @@ jobs:
         run: mkdir -p benchmark-results
       - name: Check Node benchmark syntax
         run: node --check spikes/sqlite-benchmark/node.mjs
-      - name: Run Node built-in SQLite benchmark on main thread
+      - name: Validate benchmark inputs
         shell: bash
-        run: node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node-sync.json
-      - name: Run Node built-in SQLite benchmark in a worker thread
+        run: |
+          [[ "${{ inputs.iterations }}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${{ inputs.warmup }}" =~ ^[0-9]+$ ]]
+          [[ "${{ inputs.repeats }}" =~ ^[1-9][0-9]*$ ]]
+          (( ${{ inputs.repeats }} <= 20 ))
+      - name: Run repeated Node and Rust benchmarks
         shell: bash
-        run: node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node-worker.json
-      - name: Run Rust rusqlite benchmark
-        shell: bash
-        working-directory: spikes/sqlite-benchmark/rust
-        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee ../../../benchmark-results/rust.json
+        run: |
+          for ((run=1; run<=${{ inputs.repeats }}; run++)); do
+            echo "Benchmark repetition $run/${{ inputs.repeats }}"
+            node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee "benchmark-results/node-sync-${run}.json"
+            node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee "benchmark-results/node-worker-${run}.json"
+            (cd spikes/sqlite-benchmark/rust && cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL) | tee "benchmark-results/rust-${run}.json"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: sqlite-benchmark-${{ matrix.os }}
