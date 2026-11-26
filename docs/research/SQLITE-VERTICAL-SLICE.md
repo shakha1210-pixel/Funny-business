@@ -1,6 +1,6 @@
 # Node.js SQLite Vertical Slice
 
-**Status:** Failure-injection and process-crash recovery spike verified in the Ubuntu, Windows, and macOS CI matrix; not production persistence and not a binding selection.
+**Status:** Transaction, process-crash recovery, and initial multi-process/WAL concurrency spike verified in the Ubuntu, Windows, and macOS CI matrix; not production persistence and not a binding selection.
 
 ## Purpose
 
@@ -44,4 +44,4 @@ The test is wired into the existing `pnpm run test` command, so the repository's
 4. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
 5. Complete packaging, platform/architecture, and dependency provenance review.
 
-**Verification:** The base transaction spike passed [run 45898898484](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45898898484). The failure-injection/process-crash suite passed [run 45902028784](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902028784), and the additional idempotency/commit-outcome checks passed [run 45902058380](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902058380); each run completed install, typecheck, tests, and build on Ubuntu, Windows, and macOS.\n\n**Decision:** The Node built-in SQLite path has passed this minimal transaction-contract smoke test on the three CI operating systems. It has not passed production durability, performance, packaging, or runtime-maturity gates. SQLite remains an evaluation candidate; JSON remains the active persistence implementation.
+**Verification:** The base transaction spike passed [run 45898898484](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45898898484). The failure-injection/process-crash suite passed [run 45902028784](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902028784), the additional idempotency/commit-outcome checks passed [run 45902058380](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902058380), and the initial multi-process/WAL concurrency suite passed [run 45902344483](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902344483); each run completed install, typecheck, tests, and build on Ubuntu, Windows, and macOS.\n\n**Decision:** The Node built-in SQLite path has passed this minimal transaction-contract smoke test on the three CI operating systems. It has not passed production durability, sustained concurrency/fairness, WAL backup/restore, performance, packaging, or runtime-maturity gates. SQLite remains an evaluation candidate; JSON remains the active persistence implementation.
