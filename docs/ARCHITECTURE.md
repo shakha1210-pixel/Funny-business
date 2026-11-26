@@ -72,6 +72,15 @@ Inspect -> propose -> plan -> create branch/worktree -> build -> test -> review 
 
 Permission evaluation, secret handling, sandbox enforcement, audit logging, and recovery are protected control-plane components. The agent may propose changes to them but cannot silently disable or weaken them.
 
+## Lightweight runtime strategy
+
+- Keep the desktop shell thin; domain logic and policy remain in the shared application core.
+- Start expensive capabilities on demand and stop them when idle or cancelled.
+- Prefer event-driven state delivery over frequent polling.
+- Bound project traversal, file reads, search results, caches, queues, and concurrent operations.
+- Keep performance diagnostics opt-in and on-demand; do not add background sampling solely for dashboards.
+- Establish reproducible per-OS startup, idle resource, Workspace-load, and package-size baselines before setting numeric budgets. See [PERFORMANCE.md](PERFORMANCE.md).
+
 ## Cross-platform strategy
 Windows 10/11, macOS, and Linux are first-class targets. Credential storage, process supervision, sandboxing, filesystem watching, notifications, GPU discovery, packaging, and updates use OS adapters. Validate each OS independently with native CI.
 
