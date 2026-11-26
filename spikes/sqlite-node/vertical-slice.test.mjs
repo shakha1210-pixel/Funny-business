@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -548,4 +548,60 @@ test('two independent writer processes serialize without losing committed rows',
   assert.equal(rows.length, 2);
   assert.equal(rows[0].id, 'writer-a');
   assert.equal(rows[1].id, 'writer-b');
+});
+
+
+test('WAL checkpoint reports a pinned reader and completes after the reader releases its snapshot', async (t) => {
+  const { filename, db, registerDatabase } = await withDatabase(t);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('CREATE TABLE checkpoint_probe (id TEXT PRIMARY KEY)');
+  db.prepare('INSERT INTO checkpoint_probe(id) VALUES (?)').run('before-reader');
+
+  const reader = openDatabase(filename);
+  registerDatabase(reader);
+  reader.exec('BEGIN');
+  assert.equal(reader.prepare('SELECT count(*) AS count FROM checkpoint_probe').get().count, 1);
+
+  db.prepare('INSERT INTO checkpoint_probe(id) VALUES (?)').run('after-reader-snapshot');
+
+  const pinned = db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get();
+  assert.equal(pinned.busy, 1, JSON.stringify(pinned));
+
+  reader.exec('COMMIT');
+  const released = db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get();
+  assert.equal(released.busy, 0, JSON.stringify(released));
+  assert.equal(
+    db.prepare('SELECT count(*) AS count FROM checkpoint_probe').get().count,
+    2,
+  );
+});
+
+test('VACUUM INTO backup can be restored as a consistent database with committed WAL data', async (t) => {
+  const { filename, db } = await withDatabase(t);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('CREATE TABLE backup_probe (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  db.prepare('INSERT INTO backup_probe(id, value) VALUES (?, ?)').run('item-1', 'first');
+  db.prepare('INSERT INTO backup_probe(id, value) VALUES (?, ?)').run('item-2', 'second');
+
+  const directory = filename.slice(0, filename.lastIndexOf(process.platform === 'win32' ? '\\' : '/'));
+  const backupFilename = join(directory, 'snapshot.sqlite');
+  const restoredFilename = join(directory, 'restored.sqlite');
+  db.exec(`VACUUM INTO '${backupFilename.replaceAll("'", "''")}'`);
+  db.close();
+
+  await copyFile(backupFilename, restoredFilename);
+  const restored = openDatabase(restoredFilename);
+  t.after(() => {
+    try { restored.close(); } catch {}
+  });
+
+  const rows = restored.prepare(
+    'SELECT id, value FROM backup_probe ORDER BY id',
+  ).all();
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].id, 'item-1');
+  assert.equal(rows[0].value, 'first');
+  assert.equal(rows[1].id, 'item-2');
+  assert.equal(rows[1].value, 'second');
+  assert.equal(restored.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
 });
