@@ -23,7 +23,7 @@ Both implementations create the same five tables and seed one Workspace, then ex
 4. Insert operation receipt referencing the Session and change sequence.
 5. Commit.
 
-Both use foreign keys, a 5-second busy timeout, WAL journal mode, and FULL synchronous mode by default. Each runs a configurable warmup, then a measured transaction count. Both verify the final Session row count.
+Both use foreign keys, a 5-second busy timeout, WAL journal mode, and FULL synchronous mode by default. Each uses `BEGIN IMMEDIATE`, prepares the four write statements inside each transaction, uses the same fixed timestamp, runs a configurable warmup, then a measured transaction count. Both verify the final Session row count.
 
 The Rust and Node harnesses intentionally use the same schema, constraints, write order, and transaction boundary. They are independent implementations, not production repositories or domain services.
 
@@ -48,7 +48,7 @@ Supported options:
 - `journal`: `WAL` or `DELETE`.
 - `synchronous`: `FULL` or `NORMAL`.
 
-The manual GitHub Actions workflow runs both adapters on Ubuntu, Windows, and macOS:
+The manual GitHub Actions workflow runs both adapters on Ubuntu, Windows, and macOS and uploads one JSON artifact per OS:
 [SQLite runtime benchmark workflow](../../.github/workflows/sqlite-benchmark.yml).
 
 ## Reported measurements
@@ -74,8 +74,9 @@ The Node event-loop figure is a deliberately simple timer-delay probe around a s
 
 ## Current status and next steps
 
-- Harnesses and a manual three-OS workflow are committed.
-- No benchmark result is recorded yet; the workflow must be run from GitHub Actions.
+- Harnesses, a focused Rust compile-check, and a manual three-OS benchmark workflow are committed.
+- The Rust compile-check passed its first CI run [45904796532](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45904796532); the final workflow/artifact changes are still receiving CI validation.
+- No benchmark result is recorded yet; the manual workflow must be run from GitHub Actions.
 - First verify compilation and output shape on all three OS.
 - Commit a generated Cargo.lock and pin the Rust toolchain after the first successful workflow run.
 - Run at least five repetitions per OS and compare median throughput and tail latency.
