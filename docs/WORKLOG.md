@@ -721,3 +721,9 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Run the workflow manually and inspect all 45 default result files (3 adapters × 5 repetitions × 3 OS).
 - Pin and commit the generated Rust `Cargo.lock` and toolchain before treating measurements as reproducible.
 - Review the workflow matrix results and benchmark artifact schema before calculating medians and spread.
+
+
+### Rust benchmark dependency reproducibility
+- Added a manual Cargo lockfile bootstrap workflow that generates `Cargo.lock`, verifies a locked release build, and opens a review PR rather than committing directly to `main`.
+- Updated the benchmark workflow to use `cargo run --release --locked`; the repeated benchmark cannot silently resolve a new dependency graph.
+- The benchmark workflow must be run only after the generated lockfile PR is reviewed and merged. Rust toolchain pinning remains a follow-up before treating results as fully reproducible.
