@@ -1,0 +1,35 @@
+name: SQLite runtime benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Measured transactions per adapter
+        required: true
+        default: "5000"
+      warmup:
+        description: Warmup transactions per adapter
+        required: true
+        default: "500"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run Node built-in SQLite benchmark
+        run: node spikes/sqlite-benchmark/node.mjs --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL
+      - name: Run Rust rusqlite benchmark
+        working-directory: spikes/sqlite-benchmark/rust
+        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL
