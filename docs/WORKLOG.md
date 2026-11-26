@@ -343,3 +343,32 @@ Update this file with meaningful research, implementation, tests, and blockers.
 3. Implement a reconnect-safe Workspace snapshot/event feed with bounded queues and cancellation.
 4. Add Session domain and persistence, then selected-Workspace UI state.
 5. Build the first Tauri shell and native folder picker against narrow host capabilities.
+
+
+
+## 2026-11-27 — Reconnect-safe Workspace state feed
+
+### Completed
+- Added monotonically increasing Workspace revisions and typed created/updated/removed events to the authoritative registry.
+- Registry events publish only after the next snapshot has been persisted and committed in memory; no-op operations and failed writes do not emit changes.
+- Added an atomic subscribe-plus-baseline operation so a client cannot miss a mutation between taking its initial snapshot and registering for updates.
+- Extended the transport-neutral Workspace host with an async watch feed: baseline snapshot followed by ordered incremental changes.
+- Bounded each subscriber queue; overflow replaces the queued backlog with a complete current snapshot instead of silently dropping events.
+- Added AbortSignal cancellation and iterator cleanup so disconnected consumers release their registry listeners.
+- Added tests for baseline ordering, create/rename/unregister revisions, overflow resynchronization, and cancellation.
+- Updated architecture and roadmap to record the feed contract.
+
+### Guarantees and limitations
+- Revisions are process-local and restart from zero after registry initialization; they are not durable event-log offsets.
+- The feed is currently an in-process host capability. HTTP streaming and Tauri event transport adapters are not implemented yet.
+- Queue capacity is per subscriber and configurable; the default is 64 pending messages.
+- Workspace state remains authoritative in the registry; renderer projections must replace their state when receiving a snapshot.
+
+### Verification
+- GitHub Actions run for this milestone is pending; no local checkout/build was run in this environment.
+
+### Next actions
+1. Verify typecheck, tests, and build on Ubuntu, macOS, and Windows through CI.
+2. Add Session domain/persistence and selected-Workspace state on top of the host/feed contract.
+3. Design the filesystem access-grant and safe file-operation contracts before exposing a file tree.
+4. Add durable mutation recovery and cross-process store coordination before multi-process desktop/sidecar operation.
