@@ -7,6 +7,7 @@ import { createUiServer, listenUiServer } from "./server.js";
 import { WorkspaceRegistry, type Workspace } from "../core/workspace-registry.js";
 import { RegistryWorkspaceHost } from "../host/workspace-host.js";
 import { SessionRegistry, type Session, type SessionStore } from "../core/session-registry.js";
+import { JsonSessionCreationJournal } from "../core/session-creation-journal.js";
 
 test("serves only allowlisted local UI assets and health endpoint", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-ui-"));
@@ -81,7 +82,7 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     createId: () => "workspace-api-test",
   });
   await registry.initialize();
-  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions));
+  const server = createUiServer(directory, new RegistryWorkspaceHost(registry, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json"))));
   try {
     const address = await listenUiServer(server, 0);
     const base = `http://${address.host}:${address.port}`;
@@ -101,22 +102,22 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
     });
     assert.equal(sessionResponse.status, 201);
     const sessionBody = await sessionResponse.json() as { session: { id: string; title: string; cwd: string } };
-    assert.equal(sessionBody.session.id, "session-api-test");
+    assert.match(sessionBody.session.id, /^[0-9a-f-]{36}$/i);
     assert.equal(sessionBody.session.title, "API Session");
     assert.equal(sessionBody.session.cwd, "/projects/demo");
 
     const sessionsResponse = await fetch(base + "/api/workspaces/workspace-api-test/sessions");
     const listedSessions = await sessionsResponse.json() as { sessions: Array<{ id: string }> };
-    assert.deepEqual(listedSessions.sessions.map(({ id }) => id), ["session-api-test"]);
+    assert.deepEqual(listedSessions.sessions.map(({ id }) => id), [sessionBody.session.id]);
 
-    const renamedSession = await fetch(base + "/api/sessions/session-api-test", {
+    const renamedSession = await fetch(base + "/api/sessions/" + sessionBody.session.id, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: "Renamed Session" }),
     });
     assert.equal(renamedSession.status, 200);
 
-    const archivedSession = await fetch(base + "/api/sessions/session-api-test/archive", {
+    const archivedSession = await fetch(base + "/api/sessions/" + sessionBody.session.id + "/archive", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
