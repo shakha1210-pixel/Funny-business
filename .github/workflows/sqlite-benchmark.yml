@@ -28,8 +28,18 @@ jobs:
         with:
           node-version: 22.16.0
       - uses: dtolnay/rust-toolchain@stable
+      - name: Prepare benchmark result directory
+        shell: bash
+        run: mkdir -p benchmark-results
       - name: Run Node built-in SQLite benchmark
-        run: node spikes/sqlite-benchmark/node.mjs --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL
+        shell: bash
+        run: node spikes/sqlite-benchmark/node.mjs --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee benchmark-results/node.json
       - name: Run Rust rusqlite benchmark
+        shell: bash
         working-directory: spikes/sqlite-benchmark/rust
-        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL
+        run: cargo run --release -- --iterations=${{ inputs.iterations }} --warmup=${{ inputs.warmup }} --journal=WAL --synchronous=FULL | tee ../../benchmark-results/rust.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sqlite-benchmark-${{ matrix.os }}
+          path: benchmark-results/*.json
+          if-no-files-found: error
