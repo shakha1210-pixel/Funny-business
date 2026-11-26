@@ -13,7 +13,7 @@ On startup, a persisted grant is accepted only if its Workspace still exists and
 
 - Relative slash-separated paths only; absolute paths, drive prefixes, backslashes, empty segments, dot and parent segments are rejected.
 - Symlink path components are rejected. Directory listings identify symlink entries without following them.
-- Directory enumeration is bounded to 5,000 entries total. Results are paginated with a default page size of 200 and a maximum of 500 entries per page; cursors are bound to the directory metadata version, and changes during pagination require restarting the listing.
+- Directory enumeration is bounded to 5,000 entries total. Results are paginated with a default page size of 200 and a maximum of 500 entries per page; cursors are bound to both the directory identity (hashed, not exposed) and its metadata version; they cannot be replayed against another directory, and changes during pagination require restarting the listing.
 - File reads are bounded to 1 MiB by default and UTF-8 decoded.
 - Directory entries and file reads expose opaque SHA-256 version tokens derived from filesystem metadata.
 - A read may provide the expected version; a stale token returns a conflict instead of silently reading a changed file.
