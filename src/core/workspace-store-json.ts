@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Workspace, WorkspaceStore } from "./workspace-registry.js";
 
@@ -89,6 +89,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     const payload = JSON.stringify(document, null, 2) + "\n";
 
     let handle: Awaited<ReturnType<typeof open>> | undefined;
+    let published = false;
     try {
       await mkdir(directory, { recursive: true });
       handle = await open(temporaryPath, "wx", 0o600);
@@ -97,6 +98,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       await handle.close();
       handle = undefined;
       await rename(temporaryPath, this.#filePath);
+      published = true;
 
       // Persist the directory entry on POSIX. Windows does not expose the same
       // directory-fsync contract through Node's portable API.
@@ -110,6 +112,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       }
     } catch (error) {
       if (handle) await handle.close().catch(() => undefined);
+      if (!published) await rm(temporaryPath, { force: true }).catch(() => undefined);
       throw error;
     }
   }
