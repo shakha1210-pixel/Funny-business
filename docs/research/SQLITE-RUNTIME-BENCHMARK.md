@@ -64,6 +64,16 @@ Before benchmarking, run the [Cargo lockfile bootstrap workflow](../../.github/w
 
 The Node synchronous event-loop figure is a timer-delay probe scheduled immediately before the measured transaction loop; it estimates how long that loop prevents the owning thread from servicing timers. In worker mode, the same field describes worker-thread blocking while a separate 10 ms main-thread heartbeat reports maximum scheduling delay and tick count. This is a focused responsiveness probe, not a production event-loop histogram. RSS delta is process-wide and can be noisy.
 
+## Summarizing downloaded artifacts
+
+After downloading the three OS artifacts and extracting their JSON files under one directory (for example, `benchmark-results/`), run:
+
+```sh
+node spikes/sqlite-benchmark/summarize.mjs benchmark-results --expected-repeats=5
+```
+
+The summarizer groups results by OS, adapter, and execution mode; reports median throughput, throughput range, median p95/p99 transaction latency, database open time, and available responsiveness probes; and exits with a warning status if any group has a different number of repetitions. It does not combine measurements across operating systems.
+
 ## Interpretation rules
 
 - Compare Node and Rust only within the same OS runner, same workflow input, same journal/synchronous settings, and same iteration count.
