@@ -115,3 +115,7 @@ Windows 10/11, macOS, and Linux are first-class targets. Credential storage, pro
 - Credential vault abstraction.
 - Notebook provider sequence after local Jupyter.
 - Model capability schema and extension compatibility policy.
+
+
+## Workspace filesystem adapter
+The host owns a read-only Workspace filesystem adapter. It is separate from Workspace identity and Session membership. Access requires an explicit persisted grant scoped to a Workspace's canonical root and one or both of list and read. The adapter rejects traversal and symlink components, bounds listing and file reads, and exposes opaque metadata-derived version tokens for stale-read checks. The HTTP API is a loopback development surface; the adapter is not an OS sandbox and Node's portable path APIs cannot eliminate every intermediate-component TOCTOU race. See [Workspace Filesystem Engine](research/WORKSPACE-FILESYSTEM.md).
