@@ -549,5 +549,6 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - A native lock with automatic OS release remains a desktop-host investigation item.
 
 ### Verification
-- CI is running for the implementation and the separate-process contention regression test. Results will be recorded after the full Windows/macOS/Linux matrix completes.
+- GitHub Actions run [45894986543](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45894986543) passed the complete Ubuntu, macOS, and Windows matrix, including dependency installation, typecheck, tests, and build.
+- The first separate-process fixture used stdin EOF as its child lifetime signal and exited with Node code 13 on all platforms; it was replaced with a bounded child lifetime and the final matrix passed.
 - No local checkout/build was run in this environment.
