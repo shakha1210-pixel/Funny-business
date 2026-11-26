@@ -26,7 +26,7 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
 - [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
-- [ ] Workspace crash recovery and safe file operations.
+- [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation (cross-process coordination remains open).\n- [ ] Safe filesystem access grants and file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
 - [x] Initial selected-Workspace switching and Session list/create/resume navigation in the browser UI.
@@ -85,4 +85,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Complete Session crash reconciliation and durable cross-store consistency, then add selected-Workspace/Session UI state and a native folder-picker capability. Implement the filesystem access-grant and safe file-operation layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
+Complete Session crash recovery validation and cross-process storage coordination design, then add state-feed-driven Session UI updates and a native folder-picker capability. Implement the filesystem access-grant and safe file-operation layer before exposing file browsing. Add a pnpm lockfile and restore dependency caching. Next desktop milestone: build a Tauri shell against the same host contract, without moving domain rules into renderer commands.
