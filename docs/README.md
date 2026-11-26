@@ -10,6 +10,10 @@ This directory is the canonical home for Funny-business project documentation.
 - [Security baseline](SECURITY.md) — threat model and required controls.
 - [Work log](WORKLOG.md) — dated research, implementation, verification, and blockers.
 
+## Architecture decisions
+
+- [ADR-0001: Workspace, Filesystem, and Execution Boundaries](adr/0001-workspace-domain-boundaries.md) — proposed separation of project identity, file access, permissions, and execution isolation.
+
 ## Research
 
 - [DeepSeek Harness study](research/DEEPSEEK-HARNESS.md) — upstream architecture and plugin/runtime research.
