@@ -21,6 +21,27 @@ test("serves only allowlisted local UI assets and health endpoint", async () => 
     const health = await fetch(base + "/api/health");
     assert.deepEqual(await health.json(), { status: "ok", ui: "prototype" });
 
+    const diagnosticsResponse = await fetch(base + "/api/diagnostics");
+    assert.equal(diagnosticsResponse.status, 200);
+    const diagnostics = await diagnosticsResponse.json() as {
+      runtime: {
+        node: string;
+        platform: string;
+        architecture: string;
+        uptimeMs: number;
+        memoryBytes: { residentSet: number; heapUsed: number; heapTotal: number };
+        cumulativeCpuTimeMicros: { user: number; system: number };
+      };
+    };
+    assert.match(diagnostics.runtime.node, /^v\\d+/);
+    assert.equal(typeof diagnostics.runtime.platform, "string");
+    assert.equal(typeof diagnostics.runtime.architecture, "string");
+    assert.ok(diagnostics.runtime.uptimeMs >= 0);
+    assert.ok(diagnostics.runtime.memoryBytes.residentSet > 0);
+    assert.ok(diagnostics.runtime.memoryBytes.heapTotal >= diagnostics.runtime.memoryBytes.heapUsed);
+    assert.ok(diagnostics.runtime.cumulativeCpuTimeMicros.user >= 0);
+    assert.ok(diagnostics.runtime.cumulativeCpuTimeMicros.system >= 0);
+
     assert.equal((await fetch(base + "/../../package.json")).status, 404);
     assert.equal((await fetch(base + "/app.js", { method: "POST" })).status, 405);
   } finally {
