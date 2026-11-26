@@ -567,3 +567,23 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - The lockfile has **not** been generated yet; a maintainer must manually run the bootstrap workflow and review its PR.
 - The existing CI remains unchanged until the generated lockfile is merged. Frozen installs and dependency caching are the next step after that merge.
 - No local install/build/test was run in this environment.
+
+
+## 2026-11-27 — Transactional persistence design and JSON staging hardening
+
+### Completed
+- Audited the current Workspace and Session store implementations, registries, host transaction journal, startup sequence, and cross-platform CI workflow.
+- Confirmed that the current Session-create journal coordinates one two-record workflow but is not a general Workspace/Session transaction coordinator.
+- Added proposed ADR-0003 describing a unified SQLite-backed transaction boundary, relational membership model, durable change sequence, JSON import, migration, backup, and acceptance tests. The ADR is **Proposed**; no database dependency or migration has been introduced.
+- Fixed a cleanup gap in `JsonWorkspaceStore`: if staging succeeds but atomic replacement fails, the unpublished temporary snapshot is now removed.
+- Added a regression test that forces the replacement operation to fail and verifies no temporary snapshot is left behind.
+- Fixed a malformed literal newline in the documentation index and indexed the new ADR.
+
+### Important implementation note
+- An atomic rename can publish the new file before a later directory-fsync error is reported. The current store interface does not distinguish “not committed” from “published but durability uncertain”; this commit-point ambiguity must be addressed in the future shared transaction coordinator rather than hidden by optimistic error handling.
+- SQLite remains the preferred candidate, not a final binding/runtime choice. The pnpm lockfile must be generated and reviewed before introducing a new dependency.
+
+### Verification
+- Source, test, ADR, and documentation changes were committed to GitHub.
+- Cross-platform CI for the latest commits is pending at the time of this entry.
+- No local checkout/build/test was run in this environment.
