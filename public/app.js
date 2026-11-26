@@ -128,6 +128,7 @@ async function selectWorkspace(id) {
   selectedSessionId = null;
   renderWorkspaces();
   await loadSessions();
+  await loadMessages();
   connectSessionFeed();
 }
 
@@ -236,6 +237,7 @@ async function loadWorkspaces() {
     if (!workspaces.some((item) => item.id === selectedWorkspaceId)) selectedWorkspaceId = workspaces[0]?.id ?? null;
     renderWorkspaces();
     await loadSessions();
+    await loadMessages();
     connectSessionFeed();
   } catch {
     notify("Could not load Workspace data from the local host.");
