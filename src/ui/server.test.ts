@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createUiServer, listenUiServer } from "./server.js";
 import { WorkspaceRegistry, type Workspace } from "../core/workspace-registry.js";
+import { RegistryWorkspaceHost } from "../host/workspace-host.js";
 
 test("serves only allowlisted local UI assets and health endpoint", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-ui-"));
@@ -67,7 +68,7 @@ test("exposes Workspace list, create, rename, and unregister through the host AP
     createId: () => "workspace-api-test",
   });
   await registry.initialize();
-  const server = createUiServer(directory, registry);
+  const server = createUiServer(directory, new RegistryWorkspaceHost(registry));
   try {
     const address = await listenUiServer(server, 0);
     const base = `http://${address.host}:${address.port}`;
@@ -116,7 +117,7 @@ test("rejects cross-origin Workspace mutations", async () => {
     canonicalizeDirectory: async (path) => path,
   });
   await registry.initialize();
-  const server = createUiServer(directory, registry);
+  const server = createUiServer(directory, new RegistryWorkspaceHost(registry));
   try {
     const address = await listenUiServer(server, 0);
     const response = await fetch(`http://${address.host}:${address.port}/api/workspaces`, {
