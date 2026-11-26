@@ -114,8 +114,15 @@ async function loadWorkspaces() {
       if (event.key === "Enter" || event.key === " ") openWorkspaceDialog();
     });
     grid.append(add);
-    document.querySelector(".workspace-switcher").innerHTML = '<span class="workspace-dot"></span> ' +
-      (result.workspaces[0]?.title || "No workspace selected") + ' <span class="chevron">⌄</span>';
+    const switcher = document.querySelector(".workspace-switcher");
+    switcher.replaceChildren();
+    const dot = document.createElement("span");
+    dot.className = "workspace-dot";
+    const name = document.createTextNode(" " + (result.workspaces[0]?.title || "No workspace selected") + " ");
+    const chevron = document.createElement("span");
+    chevron.className = "chevron";
+    chevron.textContent = "⌄";
+    switcher.append(dot, name, chevron);
   } catch {
     notify("Could not load Workspace data from the local host.");
   }
