@@ -255,7 +255,10 @@ export class RegistryWorkspaceHost implements WorkspaceHost {
 
   listFiles(workspaceId: string, path?: string, cursor?: string, limit?: number): Promise<FilesystemListing> {
     if (!this.#filesystem) throw new Error("Filesystem service unavailable");
-    return this.#filesystem.list(workspaceId, path, { ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}) });
+    return this.#filesystem.list(workspaceId, path, {
+      ...(cursor !== undefined ? { cursor } : {}),
+      ...(limit !== undefined ? { limit } : {}),
+    });
   }
 
   readFile(workspaceId: string, path: string, expectedVersion?: string): Promise<FilesystemReadResult> {
