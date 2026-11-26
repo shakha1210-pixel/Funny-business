@@ -136,3 +136,25 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Not done
 - Filesystem policy/local backend and UI tree/picker implementation remain to be reviewed.
 - No Funny Business Workspace implementation or ADR yet.
+
+
+## 2026-11-27 — Filesystem and Workspace UI reverse-engineering
+
+### Completed
+- Reviewed the backend-neutral filesystem contract, local filesystem provider, sandbox containment adapter, observation policy, and selected tests.
+- Confirmed realpath-based target identity, missing-ancestor resolution, no-follow lstat, version guards, per-target mutation locks, atomic staging/publication, and explicit partial move outcomes.
+- Confirmed the sandbox adapter is a trusted-code path fence, not a kernel isolation boundary; arbitrary process execution needs a separate OS-level sandbox.
+- Sampled Workspace tree/picker UI and Host directory-picker contracts: UI projections are separate from domain ownership, and directory picking is an optional capability.
+- Recorded findings in `docs/research/WORKSPACE-REVERSE-ENGINEERING.md`.
+
+### Not done
+- No upstream source copied.
+- No Funny Business Workspace/filesystem implementation or ADR yet.
+- No local build/test or successful CI result verified.
+- UI source review remains selective, not exhaustive.
+
+### Next actions
+1. Consolidate Workspace, controller, filesystem, and UI findings into ADR-0001.
+2. Define Funny Business Workspace, filesystem access grant, and execution sandbox boundaries.
+3. Inspect current Funny Business starter code before adding modules; build and test in a real checkout/CI.
+4. Implement the minimal Workspace domain and tests first; add filesystem provider only after its contract is settled.
