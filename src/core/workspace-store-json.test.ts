@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JsonWorkspaceStore } from "./workspace-store-json.js";
@@ -39,6 +39,20 @@ test("rejects corrupt and unsupported Workspace store files", async () => {
     await assert.rejects(store.load(), /invalid JSON/);
     await writeFile(path, JSON.stringify({ schemaVersion: 99, workspaces: [] }));
     await assert.rejects(store.load(), /Unsupported or invalid/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("removes an unpublished temporary snapshot when atomic replacement fails", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "funny-business-store-cleanup-"));
+  try {
+    const destination = join(directory, "destination");
+    await mkdir(destination);
+    const store = new JsonWorkspaceStore(destination);
+    await assert.rejects(store.save([sample]));
+    assert.deepEqual(await readdir(directory), ["destination"]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
