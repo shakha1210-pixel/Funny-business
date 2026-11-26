@@ -15,8 +15,8 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 3. [ ] Dispatch Rust lockfile/toolchain bootstrap; review and merge Cargo.lock + exact toolchain pin.
 4. [ ] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary artifacts; do not choose a binding from unmeasured assumptions.
 5. [ ] Select persistence host/binding only after benchmark, package, license, crash-recovery, and cross-platform evidence.
-6. [ ] Specify AgentRun/message/event schema and state machine against the transaction coordinator contract.
-7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation.
+6. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
+7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
 8. [ ] Add assistant/tool message persistence and API/feed/UI projections.
 9. [ ] Add real local model adapter only after host/provider boundary and safety contracts pass.
 10. [ ] Add hosted provider through host-owned credentials and explicit network policy.
