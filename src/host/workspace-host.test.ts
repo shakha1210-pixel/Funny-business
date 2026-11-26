@@ -28,7 +28,7 @@ class MemorySessionCreationJournal implements SessionCreationJournal {
   pending: PendingSessionCreation | undefined;
   async load() { return this.pending; }
   async save(entry: PendingSessionCreation) { this.pending = structuredClone(entry); }
-  async clear() { this.pending = undefined; }
+  async clear() {\n    if (this.failNextClear) { this.failNextClear = false; throw new Error("journal cleanup unavailable"); }\n    this.pending = undefined;\n  }
 }
 
 async function createHost() {
@@ -196,4 +196,19 @@ test("startup recovery fails closed if a Workspace references a missing Session"
   await journal.save({ schemaVersion: 1, workspaceId: workspace.id, sessionId: session.id });
   await assert.rejects(host.recoverPendingSessionCreation(), /without its Session/);
   assert.notEqual(await journal.load(), undefined);
+});
+
+test("a committed Session survives journal cleanup failure and the next operation recovers it", async () => {
+  const { host, registry, sessions, journal } = await createHost();
+  const workspace = await host.create("/journal-retry", "Journal retry");
+  journal.failNextClear = true;
+
+  const first = await host.createSession(workspace.id, "Committed despite cleanup error");
+  assert.equal(sessions.get(first.id)?.title, "Committed despite cleanup error");
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, [first.id]);
+  assert.equal((await journal.load())?.sessionId, first.id);
+
+  const second = await host.createSession(workspace.id, "Next operation");
+  assert.deepEqual(registry.get(workspace.id)?.sessionIds, [second.id, first.id]);
+  assert.equal(await journal.load(), undefined);
 });
