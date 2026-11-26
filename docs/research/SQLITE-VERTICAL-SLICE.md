@@ -20,6 +20,9 @@ Exercise the minimum transactional contract against the Node.js 22 built-in `nod
 - Simulates a lost COMMIT acknowledgement after the database committed, closes the connection, reopens the file, and resolves the outcome from the original operation receipt.
 - Simulates a failure before COMMIT, verifies the receipt is absent after reopen, and retries with the same operation ID.
 - Closes and reopens the database, then reads the durable operation receipt, migration checksum, and change sequence.
+- Uses two independent processes to verify writer-lock contention and `busy_timeout` failure behavior.
+- Verifies WAL readers see the last committed snapshot while a writer is active, do not see uncommitted rows, and see the new row after commit.
+- Runs two independent writer processes concurrently and verifies SQLite serializes them without losing either committed row.
 
 The test is wired into the existing `pnpm run test` command, so the repository's Ubuntu, Windows, and macOS CI matrix runs it using the configured Node 22 runtime.
 
@@ -28,15 +31,17 @@ The test is wired into the existing `pnpm run test` command, so the repository's
 - It does not benchmark latency, event-loop blocking, startup, memory, packaging, or installer size.
 - Process-kill tests exercise SQLite process-crash recovery on CI; they are not power-loss, storage-controller, or filesystem fault tests and do not establish universal durability guarantees.
 - Commit ambiguity is simulated at the adapter boundary; no real device I/O error or torn-write fault is induced.
-- It does not test concurrent processes, busy-lock contention, WAL backup/restore, migrations beyond the first version, or long-running readers.
+- The concurrency tests cover a small local-filesystem workload only; they do not prove fairness, starvation freedom, high-contention throughput, network-filesystem safety, or multi-host access.
+- WAL backup/restore, checkpoint pressure under long-running readers, migrations beyond the first version, and sustained reader/writer load remain untested.
 - It does not evaluate Node worker-thread ownership or a Rust/Tauri host implementation.
 - It does not replace the current JSON Workspace/Session stores or alter the host's production persistence path.
 
 ## Evaluation gates still open
 
-1. Add real adapter-level concurrency/busy-timeout tests and migration-upgrade/downgrade policy tests.
-2. Measure realistic metadata transaction latency and event-loop delay.
-3. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
-4. Complete packaging, backup/restore, platform/architecture, and dependency provenance review.
+1. Add WAL checkpoint and backup/restore tests, including active readers and recovery after interrupted backup.
+2. Add migration upgrade policy tests and sustained load/fairness measurements.
+3. Measure realistic metadata transaction latency and event-loop delay.
+4. Run the same contract through a Rust-owned host candidate before selecting the desktop persistence owner.
+5. Complete packaging, platform/architecture, and dependency provenance review.
 
 **Verification:** The base transaction spike passed [run 45898898484](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45898898484). The failure-injection/process-crash suite passed [run 45902028784](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902028784), and the additional idempotency/commit-outcome checks passed [run 45902058380](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902058380); each run completed install, typecheck, tests, and build on Ubuntu, Windows, and macOS.\n\n**Decision:** The Node built-in SQLite path has passed this minimal transaction-contract smoke test on the three CI operating systems. It has not passed production durability, performance, packaging, or runtime-maturity gates. SQLite remains an evaluation candidate; JSON remains the active persistence implementation.
