@@ -727,3 +727,15 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Added a manual Cargo lockfile bootstrap workflow that generates `Cargo.lock`, verifies a locked release build, and opens a review PR rather than committing directly to `main`.
 - Updated the benchmark workflow to use `cargo run --release --locked`; the repeated benchmark cannot silently resolve a new dependency graph.
 - The benchmark workflow must be run only after the generated lockfile PR is reviewed and merged. Rust toolchain pinning remains a follow-up before treating results as fully reproducible.
+
+
+## 2026-11-27 — Benchmark workflow input and failure handling
+
+### Completed
+- Removed direct interpolation of manual workflow inputs into Bash source; iteration, warmup, and repetition values now enter through environment variables and are validated before execution.
+- Enabled `set -euo pipefail` for validation and benchmark execution so invalid input, failed commands, or a failed adapter cannot be masked by a successful `tee` process.
+- Updated the benchmark methodology to record the workflow's input and pipeline-safety guarantees.
+
+### Verification and limitations
+- The workflow change is committed; its push-triggered CI validation is pending.
+- The manual benchmark still requires a merged Cargo.lock before it can run with `--locked`. No measurements or runtime decision have been made.
