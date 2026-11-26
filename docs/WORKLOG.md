@@ -657,3 +657,16 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Verified failure-injection/process-crash suite: [run 45902028784](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902028784) passed install, typecheck, tests, and build on Ubuntu, Windows, and macOS.
 - Verified additional idempotency/commit-outcome checks: [run 45902058380](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902058380) passed the same three-OS matrix.
 
+## 2026-11-27 — SQLite multi-process locking and WAL concurrency spike
+
+### Implemented
+- Added a second-process writer-lock contention test with an explicit `busy_timeout`; the competing process must receive SQLite's busy result rather than entering the write transaction.
+- Added a WAL reader/writer test: a reader sees the last committed snapshot while another connection has an uncommitted write, does not observe dirty data, and sees the new row after commit.
+- Added two concurrently launched independent writer processes; both use bounded busy waits and must commit their unique rows without loss.
+- Expanded the SQLite evaluation document and ADR-0003 acceptance criteria with multi-process serialization, bounded contention, WAL snapshot isolation, and future checkpoint/backup requirements.
+
+### Verification and limitations
+- CI for the new concurrency commit is pending.
+- This is a bounded local-filesystem smoke test, not a fairness/starvation or sustained-throughput benchmark. Network filesystems and multi-host writers remain out of scope.
+- WAL checkpoint, backup/restore, long-running reader pressure, and crash during backup remain future tests.
+- No production store, journal-mode default, or runtime ownership decision has changed.
