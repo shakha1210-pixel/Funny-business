@@ -22,6 +22,28 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
   response.end(JSON.stringify(value));
 }
 
+async function writeEventStreamFrame(response: ServerResponse, frame: string): Promise<boolean> {
+  if (response.destroyed) return false;
+  if (response.write(frame)) return true;
+  return new Promise<boolean>((resolveDrain) => {
+    const cleanup = () => {
+      response.off("drain", onDrain);
+      response.off("close", onClose);
+    };
+    const onDrain = () => {
+      cleanup();
+      resolveDrain(true);
+    };
+    const onClose = () => {
+      cleanup();
+      resolveDrain(false);
+    };
+    response.once("drain", onDrain);
+    response.once("close", onClose);
+    if (response.destroyed) onClose();
+  });
+}
+
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let size = 0;
@@ -83,8 +105,11 @@ async function handleWorkspaceApi(
       });
       try {
         for await (const message of registry.watchSessions(workspaceId, { signal: controller.signal })) {
-          if (response.destroyed) break;
-          response.write("event: " + message.type + "\ndata: " + JSON.stringify(message) + "\n\n");
+          const written = await writeEventStreamFrame(
+            response,
+            "event: " + message.type + "\ndata: " + JSON.stringify(message) + "\n\n",
+          );
+          if (!written) break;
         }
       } finally {
         response.off("close", onClose);
