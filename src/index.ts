@@ -1,12 +1,25 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { PluginManager } from "./core/plugin-manager.js";
+import { WorkspaceRegistry } from "./core/workspace-registry.js";
+import { JsonWorkspaceStore } from "./core/workspace-store-json.js";
 import { createUiServer, listenUiServer } from "./ui/server.js";
 
 async function main(): Promise<void> {
+  const home = process.env.FUNNY_HOME ?? join(homedir(), ".funny-business");
+  const workspaces = new WorkspaceRegistry({
+    store: new JsonWorkspaceStore(join(home, "workspaces.json")),
+    // Session persistence will be connected when the Session domain is introduced.
+    sessions: { getHeader: async () => undefined },
+  });
+  await workspaces.initialize();
+
   const plugins = new PluginManager();
-  const server = createUiServer();
+  const server = createUiServer(undefined, workspaces);
   const address = await listenUiServer(server);
   console.info("Funny-business core starting");
   console.info("Mounted plugins:", plugins.list().length);
+  console.info("Registered Workspaces:", workspaces.list().length);
   console.info(`Local workspace UI: http://${address.host}:${address.port}`);
 
   let stopping = false;
