@@ -22,4 +22,9 @@ jobs:
       - run: pnpm install
       - run: pnpm run typecheck
       - run: pnpm run test
+      - name: Smoke-test Node SQLite benchmark modes
+        shell: bash
+        run: |
+          node spikes/sqlite-benchmark/node.mjs --mode=sync --iterations=25 --warmup=5 --journal=WAL --synchronous=FULL
+          node spikes/sqlite-benchmark/node.mjs --mode=worker --iterations=25 --warmup=5 --journal=WAL --synchronous=FULL
       - run: pnpm run build
