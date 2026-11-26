@@ -196,6 +196,7 @@ test("requires explicit grants for bounded Workspace file listing and reading", 
   const project = join(directory, "project");
   await import("node:fs/promises").then((fs) => fs.mkdir(project));
   await writeFile(join(project, "README.txt"), "hello from workspace");
+  await writeFile(join(project, "notes.txt"), "more project notes");
   const store: { items: readonly Workspace[]; load(): Promise<readonly Workspace[]>; save(items: readonly Workspace[]): Promise<void> } = {
     items: [],
     async load() { return this.items; },
@@ -230,10 +231,16 @@ test("requires explicit grants for bounded Workspace file listing and reading", 
     assert.equal(grantResponse.status, 201);
     const grantBody = await grantResponse.json() as { grant: { id: string } };
 
-    const listing = await fetch(base + `/api/workspaces/${workspace.id}/files`);
+    const listing = await fetch(base + `/api/workspaces/${workspace.id}/files?limit=1`);
     assert.equal(listing.status, 200);
-    const listingBody = await listing.json() as { entries: Array<{ name: string; version?: string }> };
-    const file = listingBody.entries.find((entry) => entry.name === "README.txt");
+    const listingBody = await listing.json() as { entries: Array<{ name: string; version?: string }>; nextCursor?: string };
+    assert.equal(listingBody.entries.length, 1);
+    assert.ok(listingBody.nextCursor);
+    const nextPage = await fetch(base + `/api/workspaces/${workspace.id}/files?limit=1&cursor=${encodeURIComponent(listingBody.nextCursor)}`);
+    const nextPageBody = await nextPage.json() as { entries: Array<{ name: string }> };
+    assert.equal(nextPageBody.entries.length, 1);
+    const file = listingBody.entries.find((entry) => entry.name === "README.txt") ??
+      nextPageBody.entries.find((entry) => entry.name === "README.txt");
     assert.ok(file?.version);
 
     const read = await fetch(base + `/api/workspaces/${workspace.id}/file?path=README.txt&version=${file.version}`);
