@@ -587,3 +587,18 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Source, test, ADR, and documentation changes were committed to GitHub.
 - Cross-platform CI for the latest commits is pending at the time of this entry.
 - No local checkout/build/test was run in this environment.
+
+
+## 2026-11-27 — Transaction coordinator contract and commit ambiguity
+
+### Completed
+- Extended ADR-0003 with a normative, database-independent coordinator contract: stable operation IDs, idempotent retries, transaction phases, projection/event ordering, and explicit commit outcome semantics.
+- Defined three commit outcomes: not committed, committed, and unknown. Unknown outcomes must be resolved through database recovery and a durable operation receipt; the host must fail closed while the outcome remains unresolved.
+- Added a failure-injection matrix covering validation, transaction statements, commit-response loss, projection failures, listener failures, process crashes, and caller retries.
+- Clarified that durable change-log replay is at-least-once across reconnects; consumers deduplicate by durable sequence/operation ID. Exactly-once transport is not claimed.
+- Kept the current JSON journal as a compatibility mechanism; no SQLite dependency or runtime migration was introduced.
+
+### Verification and limitations
+- Documentation-only change. No local build/test was run.
+- Latest main-branch CI observed before this entry: run [45896991314](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45896991314) completed successfully.
+- The pnpm lockfile bootstrap workflow has not yet produced a merged lockfile; SQLite binding evaluation remains gated on that step.
