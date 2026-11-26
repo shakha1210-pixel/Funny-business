@@ -531,3 +531,23 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Not implemented
 - No cross-process lock has been added. The one-host-per-`FUNNY_HOME` rule remains an operational constraint, not an enforced guarantee.
 - No SQLite dependency, migration system, or durable cross-process event log has been added.
+
+
+## 2026-11-27 — Fail-closed single-host data-directory guard
+
+### Completed
+- Added `JsonHostLock`, an atomic-directory guard at `FUNNY_HOME/.host.lock` with restrictive owner metadata and a random ownership token.
+- Wired startup so the guard is acquired before either Workspace or Session JSON registry is loaded; startup failures attempt cleanup, and normal shutdown releases only a lock whose ownership token still matches.
+- Added a clear contention diagnostic with owner PID/hostname/start time. These fields are diagnostic only and are not used to infer stale ownership.
+- Added tests for contention, normal release/reacquisition, incomplete/stale lock fail-closed behavior, owner-token mismatch, and contention from a separate Node process.
+- Updated the architecture, security baseline, README, roadmap, and storage-coordination study to state the implemented guarantee and its limits.
+
+### Guarantees and limitations
+- Atomic directory creation prevents competing host processes on supported local filesystems from both acquiring the same guard.
+- This is not a kernel-managed advisory lock. Abrupt process termination leaves a stale lock directory; automatic PID/timestamp reclamation is deliberately not implemented. The operator must verify that no process still uses the data directory before manually removing `.host.lock`.
+- Network filesystem semantics are not covered. The guard does not enable multi-writer operation or replace a transactional store.
+- A native lock with automatic OS release remains a desktop-host investigation item.
+
+### Verification
+- CI is running for the implementation and the separate-process contention regression test. Results will be recorded after the full Windows/macOS/Linux matrix completes.
+- No local checkout/build was run in this environment.
