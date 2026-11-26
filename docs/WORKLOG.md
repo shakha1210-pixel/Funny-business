@@ -654,5 +654,6 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Scope and verification
 - These are process-crash and adapter-boundary simulations, not power-loss or real storage I/O fault tests.
 - The spike still does not implement the production transaction coordinator, in-memory projection rebuild, event notification, multi-process concurrency, WAL backup/restore, or a Rust/Tauri adapter.
-- The new test commit must pass the full Ubuntu, Windows, and macOS CI matrix before being treated as verified.
+- Verified failure-injection/process-crash suite: [run 45902028784](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902028784) passed install, typecheck, tests, and build on Ubuntu, Windows, and macOS.
+- Verified additional idempotency/commit-outcome checks: [run 45902058380](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902058380) passed the same three-OS matrix.
 
