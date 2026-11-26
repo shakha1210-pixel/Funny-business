@@ -1,0 +1,98 @@
+# Funny-business Architecture
+
+Version 0.1-draft. Targets: Windows, macOS, Linux.
+
+## Vision
+A local-first AI workspace and autonomous development environment combining a modular agent runtime, model hub, project workspace, repository integrations, notebook gateways, and controlled self-evolution. It is not a GitHub or Kaggle clone; it connects to those services through documented APIs, supported CLIs, and adapters.
+
+## Architecture rules
+1. The application core owns lifecycle, configuration, events, and policy enforcement.
+2. Capabilities are contributed through plugins with explicit manifests and lifecycle hooks.
+3. Providers are replaceable behind stable interfaces.
+4. User data and application code are stored separately.
+5. Untrusted code runs outside the privileged core with resource and permission limits.
+6. Self-evolution creates isolated changes, tests them, and requests approval before activation.
+7. External writes and destructive actions are auditable and policy-gated.
+8. Cross-platform behavior lives behind OS adapters.
+
+## System overview
+
+    EXPERIENCE: Desktop UI | Local Web UI | CLI | Notebook / Project views
+                                |
+    APPLICATION CORE: Lifecycle | Config | Event Bus | Plugin Registry
+                                |
+    AGENT RUNTIME: Planner | Context | Tool Router | Sessions
+                                |
+    MODEL HUB: Local + Hosted Providers | Discovery | Model Routing
+                                |
+    GATEWAYS: Git | GitHub | Jupyter | Kaggle | Storage | Browser | APIs
+                                |
+    POLICY: Permission Broker | Sandbox Supervisor | Secret Store
+            Approval Queue | Resource Limits | Audit | Backup / Rollback
+                                |
+    LOCAL DATA: Projects | Repositories | Environments | Models
+                Datasets | Notebooks | Artifacts | Logs
+
+## Core subsystems
+
+### Plugin runtime
+A plugin declares a stable ID, version, dependencies, services/events, requested permissions, and setup/teardown hooks. Activation is transactional: if setup fails, registered resources are disposed in reverse order. Plugins cannot grant themselves permissions.
+
+Initial categories: model-provider, agent-tool, gateway, workspace-provider, notebook-provider, ui-extension, skill-pack, storage-provider.
+
+### Agent runtime
+Task planning, context assembly from selected project files, tool routing, session history, cancellation, deadlines, retries, and progress events. The agent requests capabilities through policy; it does not receive unrestricted disk, network, or process access.
+
+### Model Hub
+Provider adapters initially target Ollama, llama.cpp server, OpenAI-compatible endpoints, and selected hosted APIs. Model metadata records modalities, context window when known, tool/vision/embedding support, local/remote status, and resource estimates. Routing checks actual provider capabilities; it never assumes every model supports every feature.
+
+### Workspace Engine
+Project registry, safe file operations, file search, selective context loading, Git-aware diffs, per-project environments, artifacts, datasets, and explicitly registered external folders.
+
+Runtime data root:
+
+    $FUNNY_HOME/
+      config/ state/ credentials/ models/
+      projects/ repositories/ notebooks/ datasets/
+      artifacts/ sandboxes/ logs/ backups/
+
+Secrets, model weights, datasets, and user project content do not belong in the source repository.
+
+### Repository Gateway
+Separate generic Git operations from GitHub-specific API features. Support status, diff, branch, worktree, commit, fetch, pull, push, and tags. GitHub adapter handles repository metadata, issues, pull requests, checks, and releases. Credentials use platform credential facilities; never commit tokens or place them in prompts, logs, URLs, or source.
+
+### Notebook and compute gateways
+Support local Jupyter/JupyterLab first, then Kaggle and other providers according to documented API/CLI capabilities. Each adapter advertises only operations it truly supports. Imported notebooks are untrusted code and require isolated, resource-limited execution.
+
+### Gateway framework
+A gateway manifest declares identity, version, capabilities, permissions, secret requirements, network destinations, resource limits, compatibility, and health checks. Lifecycle: discover, inspect, install, authorize, health-check, enable, update, disable, rollback.
+
+### Self-evolution
+Inspect -> propose -> plan -> create branch/worktree -> build -> test -> review diff and risk -> approve -> integrate -> health-check -> rollback if needed.
+
+Permission evaluation, secret handling, sandbox enforcement, audit logging, and recovery are protected control-plane components. The agent may propose changes to them but cannot silently disable or weaken them.
+
+## Cross-platform strategy
+Windows 10/11, macOS, and Linux are first-class targets. Credential storage, process supervision, sandboxing, filesystem watching, notifications, GPU discovery, packaging, and updates use OS adapters. Validate each OS independently with native CI.
+
+## Technology direction
+
+| Layer | Initial direction | Status |
+|---|---|---|
+| Core | TypeScript + Node.js | Chosen for prototype |
+| Plugin lifecycle | Small typed kernel; evaluate Cordis | Open |
+| Desktop shell | Tauri or Electron | Open |
+| UI | React-based | Proposed |
+| State | SQLite | Proposed |
+| Git | Git CLI | Proposed |
+| Local inference | Ollama + llama.cpp adapters | Proposed |
+| Notebook | Local Jupyter first | Proposed |
+| Tests | Node test runner or Vitest | Open |
+
+## Open decisions
+- Cordis adoption versus an independent minimal plugin kernel.
+- Tauri versus Electron.
+- Plugin isolation on each operating system.
+- Credential vault abstraction.
+- Notebook provider sequence after local Jupyter.
+- Model capability schema and extension compatibility policy.
