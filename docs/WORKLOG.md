@@ -853,3 +853,5 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - Persisted grants tied to a Workspace that has been unregistered or whose canonical root no longer matches are pruned during filesystem initialization; they are never rebound to another path.
 - Invalid page sizes are rejected (including zero), stale directory cursors return a conflict, and enumeration-limit failures map to an explicit payload-too-large response.
 - Added a regression test for stale grant cleanup and invalid API page sizes.
+
+- Pagination cursors are now bound to a hash of the target directory as well as its metadata version, preventing cursor reuse against a different directory without disclosing its absolute path.
