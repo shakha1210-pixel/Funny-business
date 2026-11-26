@@ -20,9 +20,11 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - [x] Add initial tests and cross-platform CI for Linux, Windows, and macOS.
 
 ## Phase 2 — Workspace and repositories
-- [x] Initial Workspace domain registry and persistence contract (durable adapter pending).
-- [ ] Durable Workspace store, crash recovery, and safe file operations.
+- [x] Initial Workspace domain registry and persistence contract.
+- [x] Atomic JSON snapshot persistence adapter (recovery journal and migrations pending).
+- [ ] Workspace host API, state feed, crash recovery, and safe file operations.
 - [x] Draft application interface and Workspace interaction specification.
+- [x] First responsive local UI prototype (host API integration pending).
 - [ ] Git status, diff, branch, worktree, commit.
 - [ ] GitHub auth and scoped repository permissions.
 - [ ] Selective project context retrieval.
@@ -76,4 +78,4 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 - Assuming unlimited provider quotas or ChatGPT context.
 
 ## Next milestone
-Implement durable Workspace persistence and host controller, then build the first UI shell and Workspace navigator against that API. Add the pnpm lockfile and restore dependency caching.
+Connect the UI prototype to authoritative Workspace host APIs and a reconnect-safe state feed; replace sample data with live Workspace, Session, Git, and agent state. Add a pnpm lockfile and restore dependency caching.
