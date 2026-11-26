@@ -674,3 +674,19 @@ Update this file with meaningful research, implementation, tests, and blockers.
 - The first backup/restore CI attempt found a Windows `EBUSY` cleanup issue because the restored DB handle was not registered with the fixture teardown. The handle is now closed before temporary-directory removal.
 - Verified GitHub Actions run [45902600113](https://github.com/shakha1210-pixel/Funny-business/actions/runs/45902600113): install, typecheck, tests, and build passed on Ubuntu, macOS, and Windows.
 - No production store, journal-mode default, or runtime ownership decision has changed.
+
+## 2026-11-27 — Node vs Rust SQLite benchmark harness
+
+### Implemented
+- Added a Node 22 `node:sqlite` benchmark using the same Session + Workspace membership + change-log + operation-receipt transaction shape as the Rust harness.
+- Added a Rust `rusqlite` 0.32.1 bundled-SQLite benchmark with matching schema, constraints, write order, journal/synchronous settings, warmup, and measured transaction loop.
+- Both emit machine-readable JSON with database open time, total wall time, throughput, p50/p95/p99/max transaction latency, and verified final row counts. Node additionally estimates synchronous event-loop stall and RSS delta.
+- Added a manual Ubuntu/Windows/macOS benchmark workflow and a focused Rust compile-check workflow.
+- Added benchmark methodology, interpretation rules, and explicit limitations to `docs/research/SQLITE-RUNTIME-BENCHMARK.md`; linked it from the docs index and binding evaluation.
+
+### Verification status and limitations
+- Benchmark measurements have not yet been collected; the manual workflow must be run from GitHub Actions.
+- Rust compile-check and existing CI are pending for the new harness.
+- `rusqlite` is pinned to 0.32.1, but Cargo.lock and exact Rust toolchain pin are not yet committed; first results are exploratory until reproducibility is closed.
+- This is a storage-adapter microbenchmark, not a full Node sidecar versus Tauri host comparison. It does not decide runtime ownership or replace JSON persistence.
+- No production dependency or runtime architecture decision changed.
