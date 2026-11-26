@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { open, readFile, rename } from "node:fs/promises";
+import { mkdir, open, readFile, rename } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Workspace, WorkspaceStore } from "./workspace-registry.js";
 
@@ -90,7 +90,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
     let handle: Awaited<ReturnType<typeof open>> | undefined;
     try {
-      await (await import("node:fs/promises")).mkdir(directory, { recursive: true });
+      await mkdir(directory, { recursive: true });
       handle = await open(temporaryPath, "wx", 0o600);
       await handle.writeFile(payload, "utf8");
       await handle.sync();
