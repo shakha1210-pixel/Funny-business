@@ -17,6 +17,8 @@ export class PluginManager {
   readonly #mounted = new Map<string, MountedPlugin>();
   readonly #services = new DefaultServiceRegistry();
   readonly #logger: Logger;
+  #operationTail: Promise<void> = Promise.resolve();
+  #shuttingDown = false;
 
   constructor(logger: Logger = defaultLogger) {
     this.#logger = logger;
@@ -26,7 +28,18 @@ export class PluginManager {
     return [...this.#mounted.values()];
   }
 
-  async mount(plugin: PluginDefinition): Promise<void> {
+  #exclusive<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.#operationTail.then(operation);
+    this.#operationTail = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  mount(plugin: PluginDefinition): Promise<void> {
+    return this.#exclusive(() => this.#mount(plugin));
+  }
+
+  async #mount(plugin: PluginDefinition): Promise<void> {
+    if (this.#shuttingDown) throw new Error("Plugin manager is shutting down");
     if (this.#mounted.has(plugin.id)) {
       throw new Error("Plugin already mounted: " + plugin.id);
     }
@@ -54,15 +67,18 @@ export class PluginManager {
       const pluginDisposer = await plugin.setup(context);
       if (pluginDisposer) disposers.push(pluginDisposer);
 
+      // Successful cleanup steps are removed; failed steps remain retryable.
+      const pendingDisposers = [...disposers];
       const mounted: MountedPlugin = {
         id: plugin.id,
         version: plugin.version,
         dependencies: [...(plugin.dependencies ?? [])],
         dispose: async () => {
           const errors: unknown[] = [];
-          for (const dispose of [...disposers].reverse()) {
+          for (let index = pendingDisposers.length - 1; index >= 0; index -= 1) {
             try {
-              await dispose();
+              await pendingDisposers[index]!();
+              pendingDisposers.splice(index, 1);
             } catch (error) {
               errors.push(error);
             }
@@ -75,22 +91,34 @@ export class PluginManager {
 
       this.#mounted.set(plugin.id, mounted);
       this.#logger.info("Plugin mounted", { id: plugin.id, version: plugin.version });
-    } catch (error) {
+    } catch (setupError) {
+      const cleanupErrors: unknown[] = [];
       for (const dispose of disposers.reverse()) {
         try {
           await dispose();
         } catch (cleanupError) {
+          cleanupErrors.push(cleanupError);
           this.#logger.error("Plugin setup rollback failed", {
             id: plugin.id,
             error: String(cleanupError),
           });
         }
       }
-      throw error;
+      if (cleanupErrors.length) {
+        throw new AggregateError(
+          [setupError, ...cleanupErrors],
+          "Plugin setup and rollback failed: " + plugin.id,
+        );
+      }
+      throw setupError;
     }
   }
 
-  async unmount(pluginId: string): Promise<void> {
+  unmount(pluginId: string): Promise<void> {
+    return this.#exclusive(() => this.#unmount(pluginId));
+  }
+
+  async #unmount(pluginId: string): Promise<void> {
     const plugin = this.#mounted.get(pluginId);
     if (!plugin) return;
 
@@ -104,29 +132,46 @@ export class PluginManager {
       );
     }
 
+    // Keep the plugin registered if disposal fails, so its degraded state is visible
+    // and shutdown can retry the remaining cleanup steps.
     await plugin.dispose();
     this.#mounted.delete(pluginId);
     this.#logger.info("Plugin unmounted", { id: pluginId });
   }
 
-  async shutdown(): Promise<void> {
+  shutdown(): Promise<void> {
+    return this.#exclusive(() => this.#shutdown());
+  }
+
+  async #shutdown(): Promise<void> {
+    this.#shuttingDown = true;
     const errors: unknown[] = [];
+    const attempted = new Set<string>();
+
     while (this.#mounted.size) {
-      const leaf = [...this.#mounted.values()].find(
-        (candidate) => ![...this.#mounted.values()].some((other) =>
-          other.dependencies.includes(candidate.id),
-        ),
+      const plugins = [...this.#mounted.values()];
+      const leaf = plugins.find(
+        (candidate) =>
+          !attempted.has(candidate.id) &&
+          !plugins.some((other) => other.dependencies.includes(candidate.id)),
       );
       if (!leaf) {
-        throw new Error("Plugin dependency cycle detected during shutdown");
+        const remaining = plugins.filter((plugin) => !attempted.has(plugin.id));
+        if (remaining.length) {
+          throw new Error("Plugin dependency cycle detected during shutdown");
+        }
+        break;
       }
+
+      attempted.add(leaf.id);
       try {
-        await this.unmount(leaf.id);
+        await this.#unmount(leaf.id);
       } catch (error) {
         errors.push(error);
-        this.#mounted.delete(leaf.id);
+        // Do not hide or forget a plugin whose cleanup failed.
       }
     }
+
     if (errors.length) {
       throw new AggregateError(errors, "One or more plugins failed to stop");
     }
