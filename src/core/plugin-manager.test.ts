@@ -15,43 +15,48 @@ test("mounts plugins and exposes typed services", async () => {
     },
   });
 
-  assert.equal(manager.list().length, 1);
-  assert.equal(manager.list()[0]?.id, "counter-provider");
+  await manager.mount({
+    id: "counter-consumer",
+    version: "0.1.0",
+    dependencies: ["counter-provider"],
+    setup(context) {
+      assert.equal(context.services.get(counter), 42);
+    },
+  });
+
+  assert.deepEqual(manager.list().map((plugin) => plugin.id), [
+    "counter-provider",
+    "counter-consumer",
+  ]);
   await manager.shutdown();
 });
 
-test("rolls back resources when plugin setup fails", async () => {
+test("rolls back registered services when setup fails", async () => {
   const manager = new PluginManager();
   const service = createServiceKey<string>("temporary");
-  let disposed = false;
 
   await assert.rejects(
     manager.mount({
       id: "broken-plugin",
       version: "0.1.0",
       setup(context) {
-        context.services.provide(service, "value");
-        return () => { disposed = true; };
+        context.services.provide(service, "temporary");
+        throw new Error("setup failed");
       },
-    }).then(async () => {
-      throw new Error("expected setup failure");
     }),
-  ).catch(() => undefined);
+    /setup failed/,
+  );
 
-  // A failed setup is represented by a throwing setup hook; registered resources
-  // must be unwound before the error reaches the caller.
-  await assert.rejects(manager.mount({
-    id: "actually-broken",
+  await manager.mount({
+    id: "recovery-plugin",
     version: "0.1.0",
     setup(context) {
-      context.services.provide(service, "value");
-      throw new Error("setup failed");
+      context.services.provide(service, "recovered");
     },
-  }), /setup failed/);
+  });
 
-  assert.equal(manager.list().length, 0);
-  assert.equal(manager["#unused" as never], undefined);
-  void disposed;
+  assert.equal(manager.list().length, 1);
+  await manager.shutdown();
 });
 
 test("does not unmount a dependency while a dependent is active", async () => {
