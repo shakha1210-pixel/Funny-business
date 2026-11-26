@@ -62,7 +62,7 @@ Before benchmarking, run the [Cargo lockfile bootstrap workflow](../../.github/w
 - OS, architecture, runtime, journal mode, synchronous mode, iteration count.
 - Verified final Session row count.
 
-The Node synchronous event-loop figure is a timer-delay probe scheduled immediately before the measured transaction loop; it estimates how long that loop prevents the owning thread from servicing timers. In worker mode, the same field describes worker-thread blocking while a separate 10 ms main-thread heartbeat reports maximum scheduling delay and tick count. This is a focused responsiveness probe, not a production event-loop histogram. RSS delta is process-wide and can be noisy.
+The Node synchronous event-loop figure is a timer-delay probe scheduled immediately before the measured transaction loop; it estimates how long that loop prevents the owning thread from servicing timers. In worker mode, the same field describes worker-thread blocking and must not be interpreted as UI responsiveness; the separate 10 ms main-thread heartbeat reports the relevant maximum scheduling delay and tick count. The summarizer uses the synchronous stall only for main-thread mode and the heartbeat only for worker mode. This is a focused responsiveness probe, not a production event-loop histogram. RSS delta is process-wide and can be noisy.
 
 ## Summarizing downloaded artifacts
 
