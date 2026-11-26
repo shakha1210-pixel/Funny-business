@@ -26,3 +26,7 @@ Provide stop-all, revoke-grants, disable-extension, terminate-sandbox, and resto
 
 ## Credentials
 Never commit tokens, embed credentials in URLs, print secrets, or ask users to paste long-lived tokens into chat. Prefer OS credential managers and documented OAuth/device flows with minimum scopes.
+
+
+## Local host data-directory ownership
+The Node development host uses an atomic-directory guard to prevent two local host processes from opening the same data directory concurrently. The guard is not a sandbox or a kernel-managed lock. After a crash, the stale guard must be removed manually only after verifying that no process still uses the directory. Do not automatically reclaim it based only on PID or timestamps. Network filesystem behavior is not covered by this guarantee.
