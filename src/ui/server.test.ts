@@ -10,6 +10,7 @@ import { SessionRegistry, type Session, type SessionStore } from "../core/sessio
 import { JsonSessionCreationJournal } from "../core/session-creation-journal.js";
 import { JsonSessionMessageStore } from "../core/session-message-store.js";
 import { SessionMessageRegistry } from "../core/session-message-registry.js";
+import { JsonFilesystemGrantStore, WorkspaceFilesystem } from "../core/workspace-filesystem.js";
 
 test("serves only allowlisted local UI assets and health endpoint", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-ui-"));
@@ -188,6 +189,70 @@ test("exposes Workspace and Session lifecycle through the host API", async () =>
   }
 });
 
+
+
+test("requires explicit grants for bounded Workspace file listing and reading", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "funny-business-files-api-"));
+  const project = join(directory, "project");
+  await import("node:fs/promises").then((fs) => fs.mkdir(project));
+  await writeFile(join(project, "README.txt"), "hello from workspace");
+  const store: { items: readonly Workspace[]; load(): Promise<readonly Workspace[]>; save(items: readonly Workspace[]): Promise<void> } = {
+    items: [],
+    async load() { return this.items; },
+    async save(items) { this.items = structuredClone(items); },
+  };
+  const sessions = new SessionRegistry({ store: new TestSessionStore() });
+  await sessions.initialize();
+  const workspaces = new WorkspaceRegistry({ store, sessions });
+  await workspaces.initialize();
+  const workspace = await workspaces.create(project, "Filesystem API");
+  const messages = new SessionMessageRegistry({ store: new JsonSessionMessageStore(join(directory, "messages")), sessions });
+  const filesystem = new WorkspaceFilesystem({
+    workspaces,
+    grants: new JsonFilesystemGrantStore(join(directory, "filesystem-grants.json")),
+  });
+  await filesystem.initialize();
+  const host = new RegistryWorkspaceHost(
+    workspaces, sessions, new JsonSessionCreationJournal(join(directory, "pending-session.json")), messages, filesystem,
+  );
+  const server = createUiServer(directory, host);
+  try {
+    const address = await listenUiServer(server, 0);
+    const base = `http://${address.host}:${address.port}`;
+    const denied = await fetch(base + `/api/workspaces/${workspace.id}/files`);
+    assert.equal(denied.status, 403);
+
+    const grantResponse = await fetch(base + `/api/workspaces/${workspace.id}/access-grants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operations: ["list", "read"] }),
+    });
+    assert.equal(grantResponse.status, 201);
+    const grantBody = await grantResponse.json() as { grant: { id: string } };
+
+    const listing = await fetch(base + `/api/workspaces/${workspace.id}/files`);
+    assert.equal(listing.status, 200);
+    const listingBody = await listing.json() as { entries: Array<{ name: string; version?: string }> };
+    const file = listingBody.entries.find((entry) => entry.name === "README.txt");
+    assert.ok(file?.version);
+
+    const read = await fetch(base + `/api/workspaces/${workspace.id}/file?path=README.txt&version=${file.version}`);
+    assert.equal(read.status, 200);
+    const readBody = await read.json() as { file: { content: string; version: string } };
+    assert.equal(readBody.file.content, "hello from workspace");
+    assert.equal(readBody.file.version, file.version);
+
+    const revoke = await fetch(base + `/api/workspaces/${workspace.id}/access-grants/${grantBody.grant.id}/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    assert.equal(revoke.status, 200);
+    assert.equal((await fetch(base + `/api/workspaces/${workspace.id}/files`)).status, 403);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test("rejects cross-origin Workspace mutations", async () => {
   const directory = await mkdtemp(join(tmpdir(), "funny-business-origin-"));
