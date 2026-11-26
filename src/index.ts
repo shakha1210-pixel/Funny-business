@@ -7,6 +7,8 @@ import { JsonWorkspaceStore } from "./core/workspace-store-json.js";
 import { SessionRegistry } from "./core/session-registry.js";
 import { JsonSessionStore } from "./core/session-store-json.js";
 import { JsonSessionCreationJournal } from "./core/session-creation-journal.js";
+import { JsonSessionMessageStore } from "./core/session-message-store.js";
+import { SessionMessageRegistry } from "./core/session-message-registry.js";
 import { createUiServer, listenUiServer } from "./ui/server.js";
 import { RegistryWorkspaceHost } from "./host/workspace-host.js";
 
@@ -31,10 +33,15 @@ async function main(): Promise<void> {
     await workspaces.initialize();
 
     plugins = new PluginManager();
+    const messages = new SessionMessageRegistry({
+      store: new JsonSessionMessageStore(join(home, "messages")),
+      sessions,
+    });
     const workspaceHost = new RegistryWorkspaceHost(
       workspaces,
       sessions,
       new JsonSessionCreationJournal(join(home, "session-creation.pending.json")),
+      messages,
     );
     await workspaceHost.recoverPendingSessionCreation();
     server = createUiServer(undefined, workspaceHost);
