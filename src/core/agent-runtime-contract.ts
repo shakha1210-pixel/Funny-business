@@ -132,6 +132,12 @@ export function transitionAgentRun(
   if (!Number.isFinite(at) || at < run.createdAt) {
     throw new RangeError("Agent run transition time must be finite and not precede creation");
   }
+  if (run.status === "running" && (run.startedAt === undefined || !Number.isFinite(run.startedAt))) {
+    throw new Error("A running AgentRun must have a valid startedAt timestamp");
+  }
+  if (run.startedAt !== undefined && at < run.startedAt) {
+    throw new RangeError("Agent run transition time cannot precede its start");
+  }
 
   const allowed: Readonly<Record<AgentRunStatus, readonly AgentRunStatus[]>> = {
     queued: ["running", "failed", "cancelled", "interrupted"],
