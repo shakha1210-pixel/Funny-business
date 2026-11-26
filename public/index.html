@@ -94,6 +94,17 @@
       <div class="agent-composer"><div class="composer-tools"><button title="Attach context">＋</button><span>Ask anything about this project</span><button title="Voice input">⌁</button></div><textarea id="agent-input" rows="3" placeholder="Tell the agent what to build..."></textarea><div class="composer-bottom"><div><button class="mode-pill">◈ Auto</button><button class="mode-pill">⌁ Tools</button></div><button class="send-button" id="send-prompt" aria-label="Send prompt">↑</button></div><div class="composer-note">Agent actions require permission when needed.</div></div>
     </aside>
   </div>
+  <dialog class="workspace-dialog" id="workspace-dialog">
+    <form id="workspace-form">
+      <div class="dialog-head"><div><div class="eyebrow">NEW WORKSPACE</div><h2>Connect a project</h2></div><button type="button" class="icon-button" id="close-workspace-dialog" aria-label="Close">×</button></div>
+      <p class="dialog-description">Register an existing local folder. Funny Business will not scan other folders or delete project files when you unregister it.</p>
+      <label for="workspace-path">Absolute folder path</label>
+      <input id="workspace-path" name="path" required placeholder="C:\\Projects\\my-app or /home/me/projects/my-app" autocomplete="off">
+      <label for="workspace-title">Workspace name <span>(optional)</span></label>
+      <input id="workspace-title" name="title" placeholder="My project" autocomplete="off">
+      <div class="dialog-actions"><button type="button" class="secondary-button" id="cancel-workspace">Cancel</button><button type="submit" class="primary-button">Add workspace</button></div>
+    </form>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
