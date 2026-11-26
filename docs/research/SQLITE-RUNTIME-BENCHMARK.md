@@ -50,7 +50,7 @@ Supported options:
 - `journal`: `WAL` or `DELETE`.
 - `synchronous`: `FULL` or `NORMAL`.
 
-The manual GitHub Actions workflow runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS. It repeats each adapter independently (default: five repetitions, configurable up to 20) and uploads one JSON result per adapter/repetition as OS-specific artifacts:
+Before benchmarking, run the [Cargo lockfile bootstrap workflow](../../.github/workflows/bootstrap-cargo-lockfile.yml) on `main`, review and merge its PR. The benchmark workflow uses `cargo --locked` and intentionally refuses to resolve an uncommitted dependency graph. The manual GitHub Actions workflow then runs Node main-thread, Node worker-thread, and Rust adapters on Ubuntu, Windows, and macOS. It repeats each adapter independently (default: five repetitions, configurable up to 20) and uploads one JSON result per adapter/repetition as OS-specific artifacts:
 [SQLite runtime benchmark workflow](../../.github/workflows/sqlite-benchmark.yml).
 
 ## Reported measurements
