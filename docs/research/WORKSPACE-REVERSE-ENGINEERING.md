@@ -335,3 +335,44 @@ The test file contains focused cases for lifecycle/bootstrap, path validation, c
 - UI workspace picker/tree state and async race tests remain to be inspected.
 - The current Funny Business code has not yet been checked out, built, or tested locally; GitHub CI has not been confirmed successful.
 - No Funny Business Workspace implementation has been started.
+
+
+## 14. Host Remote Controller source review (2026-11-27)
+
+### Source files inspected
+
+- `packages/api/workspace-controller/src/index.ts`
+- `packages/api/workspace-controller/src/feed.ts`
+- `packages/api/workspace-controller/src/types.ts`
+- `packages/api/workspace-controller/src/commands.ts`
+- `packages/api/workspace-controller/tests/workspace-controller.host.spec.ts`
+
+### Confirmed behavior
+
+- The Host controller exposes a typed Remote namespace; it is an adapter over the authoritative Workspace registry, not a second owner of Workspace state.
+- Commands map domain errors to stable transport-level error codes and structured details. Unexpected registry/storage errors are not silently converted into ordinary user mistakes.
+- Workspace rename has a controller-level serialization queue because uniqueness checks and title writes must not race. Path adoption is likewise serialized.
+- The feed projects detached values from authoritative domain entities and observes committed storage-domain changes.
+- Each stream generation begins with a complete baseline, followed by ordered increments (upsert, remove, order, archived, pinned).
+- Followers are closed on controller disposal. Stream cancellation closes the generation-local queue.
+- Remote access filtering is applied to Workspace and Session identities. When a Workspace previously visible to a client becomes inaccessible, the controller sends a complete filtered `replace` state rather than a misleading remove. This allows the client to reconcile without treating a permission change as permanent deletion.
+- Remote requests/results are browser-safe types; host filesystem paths are projected as data, while filesystem picking is a separate optional controller seam.
+
+### Test-suite coverage observed
+
+The Host controller tests cover concurrent path adoption, stable error mapping, unexpected failure propagation, command ordering, archive/pin behavior, baseline-plus-increment streams, access filtering, replace-on-visibility-loss, follower disposal, and first-use initialization.
+
+### Funny Business implications
+
+- Keep a single authoritative domain service. UI/IPC/API controllers should validate requests, map errors, and project data, but must not duplicate domain ownership.
+- Treat reconnect as a new state generation with a full baseline. Increment-only reconnect is fragile because clients may have missed events while offline.
+- Include explicit stream generation/cancellation and dispose all subscribers when the host service stops.
+- Access filtering belongs at the transport boundary as well as at the operation boundary; a user should not receive another Workspace's IDs merely because the domain event is global.
+- Model permission revocation as a state replacement/reconciliation event, not automatically as deletion.
+- Keep optional OS directory-picker capability separate; absence of a picker should not prevent core Workspace registry operation.
+
+### Remaining gaps
+
+- Filesystem policy/local backend and symlink containment/stale-write tests remain to be inspected.
+- UI workspace picker/tree state and async race tests remain to be inspected.
+- No Funny Business Workspace implementation or ADR has been created.
