@@ -430,3 +430,10 @@ Update this file with meaningful research, implementation, tests, and blockers.
 ### Verification
 - UI changes are included in the GitHub Actions cross-platform typecheck/test/build pipeline; latest run is pending.
 - No local browser or desktop visual test was run in this environment.
+
+
+
+### Startup integrity hardening
+- Workspace initialization now revalidates persisted Session references against the initialized Session registry.
+- Startup rejects missing/invalid Session headers, duplicate Session IDs within a Workspace, cross-Workspace duplicate membership, and canonical working-directory mismatches.
+- Added regression tests proving invalid persisted relationships fail initialization before the Workspace registry becomes available.
