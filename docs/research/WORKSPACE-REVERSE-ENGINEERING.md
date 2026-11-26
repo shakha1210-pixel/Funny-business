@@ -229,7 +229,9 @@ This is a sketch only. It deliberately does not bake a local filesystem path int
 - Workspace permission grants should be independent from OS sandbox policy.
 
 ### Not yet verified
-- Full source implementation of registry/entity/domain and all associated tests.
+- Workspace Controller source and tests.
+- Filesystem policy/local backend source and tests.
+- UI picker/tree state and race handling.
 - All path edge cases on Windows, macOS, and Linux.
 - Every race in bootstrap, attach, follow/reconnect, and UI selection.
 - Full UI component/state-machine behavior.
@@ -246,11 +248,90 @@ This is a sketch only. It deliberately does not bake a local filesystem path int
 - `packages/client/ui-workspace/README.md` (selected sections)
 
 Next source files to inspect:
+- Workspace Controller implementation and tests
+- filesystem policy and local backend source/tests
+- UI tree/picker state and tests
+
+
+## 13. Implementation-level source review (2026-11-27)
+
+This pass moves beyond package documentation into the Workspace package implementation and its test suite. It is still a bounded review, not a complete audit of the controller, filesystem backend, or UI.
+
+### Source files inspected
+
 - `packages/workspace/workspace/src/index.ts`
 - `packages/workspace/workspace/src/entity.ts`
 - `packages/workspace/workspace/src/spec.ts`
 - `packages/workspace/workspace/src/paths.ts`
-- workspace package tests
-- Workspace Controller source and tests
-- filesystem policy and local backend source/tests
-- UI tree/picker state and tests
+- `packages/workspace/workspace/src/types.ts`
+- `packages/workspace/workspace/tests/workspace.spec.ts`
+
+The test file contains focused cases for lifecycle/bootstrap, path validation, create/delete recovery, registry and Session ordering, membership projection, archive/pin, default initialization, and archive follow-up admission.
+
+### Additional confirmed implementation details
+
+#### Registry startup and dependency handling
+
+- The registry declares mandatory dependencies on both `storageDomain` and `sessionPersistence`.
+- Startup opens a versioned domain, installs a reversible close effect, recovers an explicitly marked interrupted mutation, validates stored invariants, then performs one-time bootstrap if needed.
+- The registry does not become active while the required Session persistence peer is absent. This prevents an unavailable persistence service from being mistaken for an empty history.
+- Header indexing uses Session headers only; tests explicitly assert that event bodies and per-session persistence stat calls are not opened during bootstrap.
+
+#### Path rules
+
+- Path qualification is platform-aware. On Windows, drive-relative forms such as `C:` without a root-qualified path and current-drive-rooted forms are rejected; UNC share paths are accepted.
+- Canonicalization uses `realpath`, and create additionally checks that the resolved target is a directory.
+- The same canonicalization is used for Session cwd validation and Workspace lookup.
+- Tests cover symlink aliases, roots, relative paths, non-directories, and missing paths. The source injects the platform only into the pure qualification/title helpers; realpath behavior remains host-OS dependent.
+
+#### Entity mutation semantics
+
+- The entity keeps a record snapshot and routes all durable changes through one mutation function.
+- The storage table's update chain is the serialization point for Session membership decisions, avoiding stale check-then-write races between attach/detach operations.
+- `updatedAt` is stamped in that shared mutation path.
+- No-op mutations avoid a storage write through an internal sentinel, unless filtering invalid candidates itself changes the record.
+- New Session attachment validates the persisted/live header cwd against the canonical Workspace path; repeat attachment is idempotent.
+- Workspace status is a live filesystem check and does not mutate the stored Workspace record.
+
+#### Recovery and consistency
+
+- Create/delete are multi-step changes spanning the Workspace table and registry-global order.
+- A durable pending marker names the exact interrupted operation. Startup recovery completes only that named operation; unexplained order/table divergence is treated as corruption rather than guessed at.
+- Failure-injection tests cover marker writes, table writes, rollback failures, and retry after interrupted bootstrap.
+- Deleting a Workspace removes only its registration and record; tests assert that its directory and Session history remain untouched.
+- Registry and entity ordering are durable, explicit, and independently tested for restart behavior.
+
+#### Archive and pin behavior
+
+- Archive and pin sets are registry-global and do not alter the Workspace's ordered Session ownership account.
+- Archiving refuses active Sessions by default through a typed waterfall event; an explicit stop option persists the archive first, then asks providers to stop work.
+- Archive and pin are mutually exclusive; archiving removes the pin in the same durable state update.
+- Unarchive invokes provider follow-up before clearing the archive state, so a failure retains the archived state.
+- Follow-up work is admitted only after durable archival; failure to admit follow-up is logged and does not undo the archive.
+- Tests cover unknown IDs, persistence-list failures, active work, provider stop failures, idempotence, restart persistence, and missing Session records during unarchive/unpin.
+
+### Important design lessons for Funny Business
+
+1. **Do not use Workspace membership as an implicit filesystem permission.** The upstream entity validates grouping; it does not make the directory safe to read or execute.
+2. **Do not use the current directory as an identity.** Stable IDs and canonical paths solve different problems.
+3. **Do not bootstrap from partial availability.** A missing persistence dependency must block initialization rather than create a false empty state.
+4. **Do not guess during recovery.** Persist the intended operation and fail loudly on unexplained corruption.
+5. **Do not conflate archive with cancellation.** Archive admission, stop requests, and background follow-up have distinct ordering and failure policies.
+6. **Keep read projections cheap.** The public membership getter is synchronous over indexed headers; expensive persistence listing happens at controlled lifecycle/validation boundaries.
+
+### Funny Business design decision candidates (not yet accepted)
+
+- Introduce a minimal Workspace domain first: stable ID, canonical root, display name, timestamps, ordered attached conversation IDs.
+- Keep archive/pin out of the first Workspace implementation unless the initial UI requires them; they are navigation policy, not core project identity.
+- Define an explicit persistence contract and crash-recovery strategy before implementing multi-record mutations.
+- Define path canonicalization behind a platform adapter, and test Windows path semantics independently from the host OS.
+- Keep access grants, filesystem operations, and process sandbox policy in separate modules.
+- Start with a non-destructive unregister operation. Any future recursive deletion must be a separate, highly privileged action with explicit confirmation.
+
+### Remaining gaps
+
+- Workspace Controller source and tests have not yet been audited.
+- Filesystem policy, local backend, symlink containment, and stale-write guard implementations/tests remain to be inspected.
+- UI workspace picker/tree state and async race tests remain to be inspected.
+- The current Funny Business code has not yet been checked out, built, or tested locally; GitHub CI has not been confirmed successful.
+- No Funny Business Workspace implementation has been started.
