@@ -22,11 +22,12 @@ Dates are intentionally omitted until scope and capacity are confirmed.
 
 ## Phase 2 — Workspace and repositories
 - [x] Initial Workspace domain registry and persistence contract.
-- [x] Atomic JSON snapshot persistence adapter (recovery journal and migrations pending).
+- [x] Atomic JSON snapshot persistence adapters; Session-create recovery journal implemented, while cross-process coordination and schema migrations remain open.
 - [x] Initial transport-neutral Workspace host contract and registry adapter; browser HTTP transport consumes the host contract.
 - [x] Reconnect-safe Workspace state feed with revisioned baseline/incremental updates, bounded overflow resync, and cancellation.
 - [x] Initial Session metadata domain, atomic JSON persistence, Workspace membership validation, and host/API lifecycle (conversation and agent execution state remain future work).
-- [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation (cross-process coordination remains open).\n- [ ] Safe filesystem access grants and file operations.
+- [x] Single-process Session-to-Workspace crash recovery journal and startup reconciliation (cross-process coordination remains open).
+- [ ] Safe filesystem access grants and file operations.
 - [x] Draft application interface and Workspace interaction specification.
 - [x] First responsive local UI prototype connected to the browser host API.
 - [x] Initial selected-Workspace switching and Session list/create/resume navigation in the browser UI.
