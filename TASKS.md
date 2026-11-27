@@ -14,7 +14,7 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 2. [x] Generate and merge pnpm lockfile (PR #1); next enable frozen lockfile installs and CI caching.
 3. [x] Generate and merge Cargo.lock + exact Rust toolchain pin (PR #2).
 4. [x] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary.md artifacts (run 45915331479; all 3 OS jobs and artifacts succeeded).
-5. [ ] Review benchmark methodology and Windows outlier; then select persistence host/binding only after package, license, crash-recovery, and cross-platform evidence.
+5. [ ] Investigate cross-platform SQLite FULL-sync latency and validate on representative devices; then select persistence host/binding only after package, license, crash-recovery, and cross-platform evidence.
 6. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
 8. [ ] Add assistant/tool message persistence and API/feed/UI projections.
@@ -87,7 +87,7 @@ All matrix jobs succeeded; each OS artifact contained 15 JSON result files (5 re
 | macOS | 4,100.9 (2,710.3–5,105.3) | 3,573.6 (1,965.1–6,062.3) | 5,543.3 (4,846.2–7,393.7) |
 | Windows | 157.1 (146.2–169.9) | 161.0 (146.8–168.0) | 154.5 (69.0–155.7) |
 
-Windows also showed a median main-thread synchronous stall of about 31.8 s for 5,000 measured transactions, versus about 1.1 s Linux and 1.2 s macOS. Treat this as a major platform/runtime outlier requiring investigation, not a direct adapter ranking. Hosted runner noise, OS/filesystem differences, and the microbenchmark's narrow workload limit conclusions. Keep SQLite binding unselected pending methodology review and representative local-device tests.
+Windows throughput was roughly 150–161 ops/s across all three adapters, while Linux/macOS were roughly 3,500–5,800 ops/s. The shared Windows slowdown suggests an OS/runner/storage-sync effect rather than a Node-only issue; its cause is not yet established. Node main-thread sync blocked the event loop for a median ~31.8 s over 5,000 measured transactions; Node worker mode kept the main-thread heartbeat max delay around 15.9 ms. This supports worker ownership when using synchronous SQLite, but does not establish production performance. Hosted runner noise, OS/filesystem differences, and the narrow microbenchmark limit conclusions. Keep the binding unselected pending methodology review and representative local-device tests.
 
 ## Current limitations / blockers
 
