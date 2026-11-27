@@ -139,7 +139,22 @@ An isolated Node 22 node:sqlite vertical slice currently verifies:
 - recovery from a lost COMMIT acknowledgement by reopening and querying the operation receipt;
 - two-process writer contention, WAL reader/writer behavior, checkpoint behavior, and VACUUM INTO backup/restore smoke tests.
 
-This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses and a manual Ubuntu/Windows/macOS GitHub Actions matrix workflow exist. The workflow runs repeated Node sync, Node worker-thread, and Rust transactions with WAL + synchronous=FULL, then emits per-OS JSON results and a summary. Benchmark run 45915331479 completed successfully on Ubuntu, Windows, and macOS. Each OS produced 15 JSON files (five repetitions each for Node sync, Node worker, and Rust rusqlite) plus summary.md. Median throughput (ops/s) was Linux: 4,690.6 / 4,640.4 / 5,833.7; macOS: 4,100.9 / 3,573.6 / 5,543.3; Windows: 157.1 / 161.0 / 154.5 (Node sync / Node worker / Rust). Windows throughput was roughly 150–161 ops/s across all three adapters, compared with roughly 3,500–5,800 ops/s on Linux/macOS. The shared Windows slowdown points toward an OS/runner/storage-sync effect rather than a Node-only issue, but the cause is unproven. Node main-thread sync blocked the event loop for a median ~31.8 s over 5,000 measured transactions; worker mode kept main-thread heartbeat max delay around 15.9 ms. This supports worker ownership for synchronous SQLite when UI responsiveness matters, not a production adapter decision. Hosted runners and the narrow workload constrain conclusions; run representative local-device and methodology checks before choosing a binding. SQLite remains an evaluation candidate; JSON remains the active production prototype store.
+This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses and a manual Ubuntu/Windows/macOS GitHub Actions matrix workflow exist. The workflow now runs repeated Node sync, Node worker-thread, and Rust transactions under both WAL + synchronous=FULL and WAL + synchronous=NORMAL, emitting per-OS JSON results and a summary. The first FULL-only run (45915331479) is retained as historical evidence. A summarizer defect initially combined FULL and NORMAL samples; PR #6 fixed the grouping key to include OS, synchronous mode, and adapter/mode, and added regression coverage. Corrected run 45971533752 completed successfully on Ubuntu, Windows, and macOS. Each OS produced 30 JSON files (five repetitions × two synchronous modes × three adapter/mode combinations) plus summary.md.
+
+Corrected median throughput (ops/s, with min–max) is:
+
+| OS | Sync | Node main-thread | Node worker-thread | Rust rusqlite |
+|---|---|---:|---:|---:|
+| Linux | FULL | 2,700.8 (2,448.1–3,067.7) | 2,679.9 (1,610.1–3,719.0) | 3,236.6 (1,914.4–3,670.9) |
+| Linux | NORMAL | 4,314.4 (3,551.5–5,010.1) | 4,356.8 (4,004.7–5,169.1) | 4,394.9 (3,943.2–4,814.8) |
+| macOS | FULL | 3,198.3 (1,343.7–3,982.0) | 2,798.3 (1,546.2–3,073.1) | 3,212.5 (1,070.8–4,097.7) |
+| macOS | NORMAL | 7,630.1 (5,708.6–9,388.2) | 6,940.5 (5,545.9–9,090.1) | 10,126.5 (7,993.3–10,701.3) |
+| Windows | FULL | 104.2 (78.0–119.1) | 105.4 (96.9–134.1) | 105.7 (70.9–135.6) |
+| Windows | NORMAL | 487.8 (264.7–569.2) | 391.6 (232.0–581.7) | 489.8 (381.2–523.6) |
+
+The main/UI-thread probe medians (ms) were Linux FULL 1,851.63 main / 1.20 worker and NORMAL 1,159.24 main / 1.20 worker; macOS FULL 1,563.93 main / 5.57 worker and NORMAL 655.63 main / 4.60 worker; Windows FULL 47,988.24 main / 15.86 worker and NORMAL 10,251.50 main / 15.74 worker. These are specific to the benchmark's 5,000-transaction workload and are not general UI latency guarantees.
+
+Within this workload, NORMAL increased median throughput relative to FULL on all three OSes, but NORMAL has a different durability trade-off and these numbers do not justify weakening the durability setting. Worker-thread execution kept the probe around 1–16 ms while main-thread synchronous execution showed much larger delays, supporting worker ownership if a synchronous SQLite API is used and UI responsiveness matters. Windows remained much slower than Linux/macOS across all adapters and modes; a shared runner/filesystem/storage-sync effect is plausible but unproven. Hosted CI runners are noisy: compare adapters only within the same OS, sync mode, and identical workload/settings. This evidence does not select a binding or prove power-loss durability or production performance. SQLite remains an evaluation candidate; JSON remains the active production prototype store. Before a binding decision, review methodology and validate on representative local devices, including crash-recovery, packaging, and license evidence.
 
 ### Normative transaction coordinator contract
 1. Validate: normalize input and check domain invariants.
@@ -158,7 +173,7 @@ Commit outcomes must distinguish not committed, committed, and unknown. For an u
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
 - Rust rusqlite/SQLx under Tauri: narrow native host adapter candidate; avoid duplicating domain rules or exposing SQL to renderer.
 - Tauri SQL plugin guest API is not an acceptable direct renderer database boundary.
-No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Benchmark run 45915331479 is complete; inspect its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
+No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Corrected benchmark run 45971533752 is complete; review its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
 
 ## 7. Plugin and extension architecture
 
