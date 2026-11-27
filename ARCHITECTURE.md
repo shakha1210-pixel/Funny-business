@@ -156,6 +156,25 @@ The main-thread synchronous runs measured the delay of a single zero-delay timer
 
 Within this workload, NORMAL increased median throughput relative to FULL on all three OSes, but NORMAL has a different durability trade-off and these numbers do not justify weakening the durability setting. The pre-scheduled timer delay confirms that a long synchronous workload prevents the main event loop from running a queued timer until the work completes. The worker heartbeat indicates that its recurring timer continued to run during the worker-owned workload, but it is a distinct probe; this supports further evaluation of worker ownership without claiming a direct latency comparison or a UI responsiveness guarantee. Windows remained much slower than Linux/macOS across all adapters and modes; a shared runner/filesystem/storage-sync effect is plausible but unproven. Hosted CI runners are noisy: compare adapters only within the same OS, sync mode, and identical workload/settings. This evidence does not select a binding or prove power-loss durability or production performance. SQLite remains an evaluation candidate; JSON remains the active production prototype store. Before a binding decision, review methodology and validate on representative local devices, including crash-recovery, packaging, and license evidence.
 
+### Follow-up corrected FULL vs NORMAL run (46024330392)
+
+The follow-up workflow completed successfully on Ubuntu, macOS, and Windows. Each OS artifact contained 30 JSON samples (five repetitions × two synchronous modes × three adapter/mode combinations) and a summary; all 90 samples and all summaries were inspected. The run used 5,000 measured iterations and 500 warmup iterations. Artifact IDs: Ubuntu `15210388378`, macOS `15210484156`, Windows `15211883740`.
+
+Median throughput in ops/s (min–max):
+
+| OS | Sync | Node main-thread | Node worker-thread | Rust rusqlite |
+|---|---|---:|---:|---:|
+| Linux | FULL | 3,411.2 (2,675.0–3,464.2) | 3,190.4 (2,931.0–3,335.2) | 3,815.0 (3,670.8–3,969.1) |
+| Linux | NORMAL | 7,651.1 (7,288.6–8,089.2) | 7,285.2 (6,952.5–7,540.7) | 9,815.4 (8,686.7–10,198.5) |
+| macOS | FULL | 2,972.5 (1,382.5–4,739.6) | 2,863.1 (1,402.0–4,717.2) | 3,325.6 (2,230.2–4,180.3) |
+| macOS | NORMAL | 7,233.3 (6,510.1–7,838.8) | 6,206.8 (5,631.8–8,031.6) | 9,032.5 (4,905.0–9,523.2) |
+| Windows | FULL | 133.5 (116.8–146.2) | 144.7 (68.2–159.4) | 148.8 (119.9–159.0) |
+| Windows | NORMAL | 513.8 (408.2–710.3) | 509.3 (447.4–795.2) | 473.9 (461.5–547.5) |
+
+Median pre-scheduled zero-delay timer callback delay for the synchronous main-thread workload (ms): Linux FULL 1,466.09 / NORMAL 653.83; macOS FULL 1,682.80 / NORMAL 691.60; Windows FULL 37,464.98 / NORMAL 9,733.09. This measures how long the callback waits while synchronous work occupies the main thread; it is not UI-frame or input latency. The separate worker-thread recurring 10 ms heartbeat median maximum delays (ms) were: Linux FULL 0.89 / NORMAL 0.38; macOS FULL 4.86 / NORMAL 5.04; Windows FULL 15.63 / NORMAL 15.07. The two probes are not directly comparable.
+
+NORMAL increased median throughput over FULL in all groups except none? The Windows Rust NORMAL median (473.9 ops/s) is also above its FULL median (148.8 ops/s). This is a throughput observation only; FULL remains the more conservative durability setting, and these numbers do not justify weakening durability. Rust had the highest median on Linux and macOS in both modes; Windows adapter medians were close, with wider spread in some groups. Windows remained far slower than Linux/macOS across adapters and modes. A shared hosted-runner, filesystem, or storage-sync effect is plausible but unproven. Hosted CI runners are noisy and do not replace representative local-device measurements. This run does not select a binding or prove power-loss durability or production performance. SQLite remains an evaluation candidate; JSON remains the active production prototype store. Methodology review and representative local-device validation remain open.
+
 ### Normative transaction coordinator contract
 1. Validate: normalize input and check domain invariants.
 2. Prepare: allocate stable entity and operation IDs; construct immutable changes.
@@ -173,7 +192,7 @@ Commit outcomes must distinguish not committed, committed, and unknown. For an u
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
 - Rust rusqlite/SQLx under Tauri: narrow native host adapter candidate; avoid duplicating domain rules or exposing SQL to renderer.
 - Tauri SQL plugin guest API is not an acceptable direct renderer database boundary.
-No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Corrected benchmark run 45971533752 is complete; review its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
+No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Corrected benchmark runs 45971533752 and 46024330392 are complete; review cross-platform outliers and validate on representative devices before recording an evidence-based decision in a new ADR.
 
 ## 7. Plugin and extension architecture
 
