@@ -15,7 +15,7 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 3. [x] Generate and merge Cargo.lock + exact Rust toolchain pin (PR #2).
 4. [x] Run the initial SQLite FULL-sync benchmark matrix on Ubuntu, Windows, and macOS (run 45915331479); preserve its results as provisional historical evidence.
 5. [x] Fix benchmark summarization to group by OS + synchronous mode + adapter/mode (PR #6); add FULL/NORMAL regression coverage.
-6. [x] Rerun the corrected benchmark on all three OSes and inspect all 90 JSON samples plus per-OS summary.md artifacts (run 45971533752).
+6. [x] Rerun the corrected FULL/NORMAL benchmark on all three OSes and inspect all 90 JSON samples plus per-OS summary.md artifacts (runs 45971533752 and 46024330392).
 7. [ ] Review the benchmark methodology and validate FULL/NORMAL behavior on representative local devices; then decide whether to select a persistence host/binding, only after package, license, crash-recovery, and cross-platform evidence.
 8. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 9. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
@@ -61,9 +61,11 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 - [x] Initial manual SQLite benchmark workflow completed on Ubuntu/Windows/macOS (run 45915331479); 15 JSON results per OS plus summary.md inspected.
 - [x] Benchmark summarizer now separates OS + synchronous mode + adapter/mode groups; PR #6 merged at `b3f68f6353d5712af86a89b65d34fc67bfcfc8fc`.
 - [x] Corrected SQLite benchmark completed on Ubuntu/Windows/macOS (run 45971533752); 30 JSON results and summary.md per OS inspected. Results remain provisional hosted-runner evidence, not a binding decision.
+- [x] Follow-up corrected benchmark completed on Ubuntu/Windows/macOS (run 46024330392); all three jobs succeeded and all 90 JSON results plus per-OS summary.md artifacts were inspected. Results remain provisional hosted-runner evidence, not a binding decision.
 
 ## Verification ledger
 
+- [x] GitHub Actions run 46024330392 — repeated SQLite WAL/FULL and WAL/NORMAL benchmark matrix; Ubuntu/Windows/macOS success, 30 JSON samples plus summary.md per OS.
 - [x] GitHub Actions run 45911318923 — Agent Runtime contract + lifecycle tests, typecheck, full tests, benchmark smoke checks, and build; Ubuntu/Windows/macOS success.
 - [x] GitHub Actions run 45912851778 — post-pnpm-lockfile CI, success.
 - [x] GitHub Actions run 45913548321 — post-Cargo.lock SQLite Rust spike check on main, success.
@@ -113,6 +115,25 @@ The main-thread synchronous runs measured a single zero-delay timer scheduled im
 Within this workload, NORMAL increased median throughput relative to FULL on all OSes, while FULL remained the more conservative durability setting. The pre-scheduled timer delay shows that a synchronous main-thread workload prevents the event loop from running the queued timer until the work completes. The worker heartbeat shows that its recurring timer continued during the worker-owned workload, but it is a distinct probe; this supports further evaluation of worker ownership without claiming a direct latency comparison or a UI responsiveness guarantee. This is not sufficient to select an adapter or weaken durability: NORMAL has different durability trade-offs, and no crash/power-loss or user-device performance conclusion follows from this throughput microbenchmark.
 
 Windows throughput remained far below Linux/macOS across all adapters and both sync modes. The common platform effect suggests runner, filesystem, or storage-sync factors may contribute, but the cause is unproven. Hosted CI runners are noisy; compare adapters only within the same OS, sync mode, and identical workload/settings. Keep SQLite unselected pending methodology review, representative local-device tests, crash-recovery validation, package/license review, and an explicit durability decision.
+
+## Follow-up corrected FULL vs NORMAL benchmark evidence (run 46024330392)
+
+All three matrix jobs and artifact uploads succeeded on Ubuntu, macOS, and Windows. Each artifact contains 30 JSON files (five repetitions × two synchronous modes × three adapter/mode combinations) plus `summary.md`; all 90 JSON samples and all three summaries were inspected. Artifacts: Ubuntu `15210388378`, macOS `15210484156`, Windows `15211883740`. The run used 5,000 measured iterations, 500 warmup iterations, and five repetitions.
+
+Median throughput in ops/s (min–max), grouped by OS and synchronous mode:
+
+| OS | Sync | Node main-thread | Node worker-thread | Rust rusqlite |
+|---|---|---:|---:|---:|
+| Linux | FULL | 3,411.2 (2,675.0–3,464.2) | 3,190.4 (2,931.0–3,335.2) | 3,815.0 (3,670.8–3,969.1) |
+| Linux | NORMAL | 7,651.1 (7,288.6–8,089.2) | 7,285.2 (6,952.5–7,540.7) | 9,815.4 (8,686.7–10,198.5) |
+| macOS | FULL | 2,972.5 (1,382.5–4,739.6) | 2,863.1 (1,402.0–4,717.2) | 3,325.6 (2,230.2–4,180.3) |
+| macOS | NORMAL | 7,233.3 (6,510.1–7,838.8) | 6,206.8 (5,631.8–8,031.6) | 9,032.5 (4,905.0–9,523.2) |
+| Windows | FULL | 133.5 (116.8–146.2) | 144.7 (68.2–159.4) | 148.8 (119.9–159.0) |
+| Windows | NORMAL | 513.8 (408.2–710.3) | 509.3 (447.4–795.2) | 473.9 (461.5–547.5) |
+
+The main-thread synchronous runs measured a single zero-delay timer scheduled immediately before the 5,000-transaction workload. Median pre-scheduled timer callback delay (ms): Linux FULL 1,466.09 / NORMAL 653.83; macOS FULL 1,682.80 / NORMAL 691.60; Windows FULL 37,464.98 / NORMAL 9,733.09. This is the time until the event loop can run that callback after synchronous work; it is not frame-time, input-latency, or recurring heartbeat latency. Worker-thread runs measured a separate recurring 10 ms main-thread heartbeat; median maximum callback delays (ms): Linux FULL 0.89 / NORMAL 0.38; macOS FULL 4.86 / NORMAL 5.04; Windows FULL 15.63 / NORMAL 15.07. These probes use different methods and must not be compared as the same metric.
+
+Within this workload, NORMAL increased median throughput over FULL on every OS and adapter, including Windows Rust (473.9 vs 148.8 ops/s). FULL remains the more conservative durability setting; the throughput results do not justify weakening durability. Rust had the highest median in both modes on Linux and macOS, while Windows adapter medians were close and worker spread was wider. Windows remained dramatically slower than Linux/macOS across the matrix; a shared hosted-runner, filesystem, or storage-sync effect is plausible but unproven. Hosted CI results are noisy and are not representative local-device measurements. Compare adapters only within the same OS, sync mode, and identical workload/settings. This run does not select a binding or prove power-loss durability or production performance. SQLite remains an evaluation candidate; JSON remains the active production prototype store. Representative local-device validation, methodology review, crash-recovery, package, and license evidence remain open.
 
 ## Current limitations / blockers
 
