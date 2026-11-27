@@ -40,7 +40,9 @@ CREATE TABLE messages (
   content TEXT NOT NULL CHECK (length(content) > 0),
   created_at INTEGER NOT NULL CHECK (created_at >= 0),
   tool_call_id TEXT,
-  tool_name TEXT
+  tool_name TEXT,
+  FOREIGN KEY (run_id, session_id)
+    REFERENCES agent_runs(id, session_id) ON DELETE CASCADE
 ) STRICT;
 
 CREATE INDEX messages_session_created
@@ -69,7 +71,8 @@ CREATE TABLE agent_runs (
     OR
     (status <> 'failed' AND failure_code IS NULL AND failure_message IS NULL
       AND failure_retryable IS NULL)
-  )
+  ),
+  UNIQUE (id, session_id)
 ) STRICT;
 
 CREATE INDEX agent_runs_session_created
