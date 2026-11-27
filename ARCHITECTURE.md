@@ -187,6 +187,57 @@ NORMAL increased median throughput over FULL on all three OSes and all three ada
 
 Commit outcomes must distinguish not committed, committed, and unknown. For an unknown outcome, reopen/recover and query the original operation receipt. Never compensate, blindly retry with a new ID, or publish speculative events. If still unresolved, fail closed. Consumers deduplicate by durable sequence/operation ID; do not claim exactly-once transport.
 
+
+### Benchmark v2 methodology and acceptance criteria (planned)
+
+The existing benchmark is a controlled sequential `session.create` microbenchmark. It is useful for comparing adapter overhead under a narrow transaction, but it is not a representative application workload and must not be used alone to select production persistence. Benchmark v2 is a separate evaluation phase; it does not change the active JSON stores.
+
+#### Workload matrix
+
+Use a deterministic, seeded dataset and identical logical operations, schema, indexes, transaction boundaries, payload sizes, SQLite version/build, WAL mode, and synchronous setting across adapters.
+
+| Workload | Required behavior | Purpose |
+|---|---|---|
+| Sequential write baseline | One writer; repeatable append/commit operations | Preserve a comparable low-contention baseline |
+| Mixed application workload | Workspace/Session metadata changes, user/assistant message appends, run lifecycle/event appends, and point reads | Exercise the transaction shapes expected by the host |
+| Reader/writer contention | One serialized writer plus 4 concurrent read clients; readers issue bounded point and ordered-feed queries | Measure read latency and writer interference without inventing multi-writer semantics |
+| WAL/checkpoint | Record WAL growth during writes; run passive and truncate checkpoints as separately reported phases where supported | Measure checkpoint duration, bytes before/after, and effect on readers/writer |
+| Recovery/integrity | Inject failures before commit, after commit, and after commit before acknowledgement; reopen and verify receipts, ordering, and invariants | Verify process-crash recovery and ambiguous-commit handling |
+
+The mixed workload's operation mix and payload distribution must be versioned in the harness and emitted in every result. Do not tune one adapter's schema, indexes, batching, or transaction boundaries independently. Keep the current sequential benchmark as a separately labeled baseline, not as the headline result.
+
+#### Measurements
+
+Every workload reports:
+- committed operations/second and successful/failed operation counts;
+- transaction and read latency p50/p95/p99;
+- lock/busy retries, timeout count, and terminal errors;
+- database bytes and WAL bytes at phase boundaries; checkpoint duration and checkpointed/busy frame counts where available;
+- process RSS/peak RSS and CPU time;
+- main-thread event-loop delay for sync mode, and a separately named recurring heartbeat delay for worker mode. These probes are different metrics and must never be combined or compared as equivalent.
+
+Report raw per-repetition JSON, median and min–max (and p95/p99 from raw operation samples where practical). Summaries must group by OS, adapter, execution mode, workload, and synchronous setting. A run with missing samples, mismatched workload fingerprints, failed integrity checks, or unequal adapter configuration is invalid rather than partially comparable.
+
+#### Fairness and execution matrix
+
+- CI: Ubuntu, Windows, and macOS hosted runners; use the same pinned Node/Rust toolchains and workload fingerprint. Treat CI as regression/comparability evidence, not representative device performance.
+- Local validation: at least one representative physical device on each target OS before a persistence decision. Record device model/class, OS version, CPU, RAM, storage type where known, runtime/toolchain, commit, power mode, and background-load notes. Do not pool local and hosted-runner results.
+- Settings: WAL + synchronous=FULL is the conservative durability baseline. WAL + NORMAL is a separately labeled comparison only; never infer that its throughput advantage justifies changing the durability policy.
+- Repetitions: warm up each scenario, then run at least 5 measured repetitions. Randomize adapter/scenario order when practical and retain every raw sample.
+- Baselines: compare adapters only within the same machine, workload fingerprint, SQLite configuration, and repetition protocol. Include the current JSON implementation only for operations with equivalent semantics; explicitly label non-transactional JSON behavior rather than pretending it has SQLite atomicity.
+
+#### Acceptance gates
+
+1. **Semantic parity:** adapters execute the same logical operation contract, schema constraints, indexes, and commit boundaries. Differences are documented before measurement.
+2. **Correctness:** zero lost acknowledged commits, duplicate durable sequence numbers, invalid foreign-key/membership states, or idempotency-receipt mismatches across normal and injected-failure runs.
+3. **Recovery:** pre-COMMIT failures leave no partial transaction; post-COMMIT and lost-ack cases are resolved by reopening and querying the original operation receipt. Process termination is not described as a power-loss test.
+4. **Concurrency:** readers observe only committed, internally consistent state; writer contention is bounded and reported; no silent dropped writes or unbounded retry loops.
+5. **Checkpoint/space:** WAL growth and checkpoint outcomes are measured and bounded by an explicit workload/device policy established from observed data. Do not invent a universal byte or time budget before local baselines exist.
+6. **Performance:** establish per-OS local baselines first. Any numeric regression budget must be justified from repeated measurements and product requirements; do not promote an adapter based on one median or hosted CI alone.
+7. **Operational readiness:** package provenance, license obligations, supported platform coverage, backup/restore, migration/rollback, and failure diagnostics are reviewed before selecting a binding.
+
+A benchmark v2 pass means the evidence is complete and reproducible; it does not automatically authorize SQLite adoption. Production selection remains a separate architecture decision requiring all gates and an explicit ADR. FULL remains the conservative default unless a separately reviewed durability decision says otherwise.
+
 ### SQLite binding candidates
 - Node 22 built-in node:sqlite: synchronous API and Active Development stability; evaluate event-loop impact and worker ownership.
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
