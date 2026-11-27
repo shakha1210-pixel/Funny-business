@@ -58,7 +58,7 @@ function insertSeed(db, dataset) {
       insertWorkspace.run(workspaceId, `/benchmark/workspace-${w}`, `Workspace ${w}`, now, now);
       for (let s = 0; s < dataset.sessionsPerWorkspace; s += 1) {
         const sessionId = `${workspaceId}-session-${s}`;
-        insertSession.run(sessionId, `/benchmark/workspace-${w}`, `Session ${s}`, now, now, "active");
+        insertSession.run(sessionId, `/benchmark/workspace-${w}`, `Session ${s}`, now, now);
         attachSession.run(workspaceId, sessionId, now);
         for (let m = 0; m < dataset.messagesPerSession; m += 1) {
           insertMessage.run(
