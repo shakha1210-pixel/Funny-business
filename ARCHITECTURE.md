@@ -173,7 +173,7 @@ Commit outcomes must distinguish not committed, committed, and unknown. For an u
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
 - Rust rusqlite/SQLx under Tauri: narrow native host adapter candidate; avoid duplicating domain rules or exposing SQL to renderer.
 - Tauri SQL plugin guest API is not an acceptable direct renderer database boundary.
-No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Benchmark run 45915331479 is complete; inspect its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
+No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Corrected benchmark run 45971533752 is complete; review its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
 
 ## 7. Plugin and extension architecture
 
