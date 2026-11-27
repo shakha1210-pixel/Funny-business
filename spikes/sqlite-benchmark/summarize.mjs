@@ -59,8 +59,9 @@ for (const file of files) {
   }
 
   const platform = normalizePlatform(result.platform);
+  const synchronous = result.synchronous ?? 'unspecified';
   const mode = result.executionMode ?? 'rust-native';
-  const key = [platform, result.adapter, mode].join('/');
+  const key = [platform, synchronous, result.adapter, mode].join('/');
   const samples = groups.get(key) ?? [];
   samples.push({ ...result, source: relative(root, file) });
   groups.set(key, samples);
@@ -68,13 +69,13 @@ for (const file of files) {
 
 const rows = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 console.log(`SQLite benchmark summary — ${files.length} JSON files`);
-console.log(`Expected repetitions per adapter/platform: ${expectedRepeats}`);
+console.log(`Expected repetitions per OS/sync/adapter/mode group: ${expectedRepeats}`);
 console.log('');
-console.log('| OS | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Main/UI thread probe |');
-console.log('|---|---|---:|---:|---:|---:|---:|---|');
+console.log('| OS | Sync | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Main/UI thread probe |');
+console.log('|---|---|---|---:|---:|---:|---:|---:|---|');
 
 for (const [key, samples] of rows) {
-  const [platform, adapter, mode] = key.split('/');
+  const [platform, synchronous, adapter, mode] = key.split('/');
   const throughput = samples.map((sample) => sample.opsPerSecond);
   const p95 = samples.map((sample) => sample.transactionMs.p95);
   const p99 = samples.map((sample) => sample.transactionMs.p99);
@@ -87,13 +88,13 @@ for (const [key, samples] of rows) {
   const throughputRange = range(throughput);
   const responsiveness = probes.length ? `${median(probes).toFixed(2)} ms median (n=${probes.length})` : 'n/a';
   const runLabel = samples.length === expectedRepeats ? String(samples.length) : `**${samples.length}** (expected ${expectedRepeats})`;
-  console.log(`| ${platform} | ${adapter} / ${mode} | ${runLabel} | ${median(throughput).toFixed(1)} (${throughputRange[0].toFixed(1)}–${throughputRange[1].toFixed(1)}) | ${median(p95).toFixed(4)} | ${median(p99).toFixed(4)} | ${open.length ? median(open).toFixed(3) : 'n/a'} | ${responsiveness} |`);
+  console.log(`| ${platform} | ${synchronous} | ${adapter} / ${mode} | ${runLabel} | ${median(throughput).toFixed(1)} (${throughputRange[0].toFixed(1)}–${throughputRange[1].toFixed(1)}) | ${median(p95).toFixed(4)} | ${median(p99).toFixed(4)} | ${open.length ? median(open).toFixed(3) : 'n/a'} | ${responsiveness} |`);
 }
 
 console.log('');
-console.log('Interpretation: compare adapters only within the same OS and identical workload/settings. Hosted CI runners are noisy; report medians and spread, do not treat this microbenchmark as a complete desktop-runtime decision.');
+console.log('Interpretation: compare adapters only within the same OS, sync mode, and identical workload/settings. Hosted CI runners are noisy; report medians and spread, do not treat this microbenchmark as a complete desktop-runtime decision.');
 const incomplete = rows.filter(([, samples]) => samples.length !== expectedRepeats);
 if (incomplete.length) {
-  console.error(`Warning: ${incomplete.length} adapter/platform group(s) do not have the expected repetition count.`);
+  console.error(`Warning: ${incomplete.length} OS/sync/adapter/mode group(s) do not have the expected repetition count.`);
   process.exitCode = 2;
 }
