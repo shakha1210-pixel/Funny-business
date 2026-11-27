@@ -89,7 +89,6 @@ for (const [key, samples] of rows) {
   const timerDelayLabel = timerDelays.length ? `${median(timerDelays).toFixed(2)} ms median (n=${timerDelays.length})` : 'n/a';
   const heartbeatLabel = heartbeatDelays.length ? `${median(heartbeatDelays).toFixed(2)} ms median (n=${heartbeatDelays.length})` : 'n/a';
   const throughputRange = range(throughput);
-  const responsiveness = probes.length ? `${median(probes).toFixed(2)} ms median (n=${probes.length})` : 'n/a';
   const runLabel = samples.length === expectedRepeats ? String(samples.length) : `**${samples.length}** (expected ${expectedRepeats})`;
   console.log(`| ${platform} | ${synchronous} | ${adapter} / ${mode} | ${runLabel} | ${median(throughput).toFixed(1)} (${throughputRange[0].toFixed(1)}–${throughputRange[1].toFixed(1)}) | ${median(p95).toFixed(4)} | ${median(p99).toFixed(4)} | ${open.length ? median(open).toFixed(3) : 'n/a'} |  ${timerDelayLabel} | ${heartbeatLabel} |`);
 }
