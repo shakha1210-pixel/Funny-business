@@ -15,6 +15,7 @@ const sample = (platform, adapter, executionMode, opsPerSecond, p95, p99, synchr
   synchronous,
   opsPerSecond,
   totalMs: 1000,
+  preScheduledTimerDelayMs: 12.5,
   openMs: 2,
   transactionMs: { p95, p99 },
 });
@@ -32,7 +33,7 @@ try {
   await writeFile(join(linux, 'rust-2.json'), JSON.stringify(sample('linux', 'rusqlite', undefined, 170, 4, 6)));
   const workerSample = {
     ...sample('win32', 'node:sqlite DatabaseSync', 'worker-thread', 300, 1, 2),
-    synchronousEventLoopStallMs: 999,
+    preScheduledTimerDelayMs: 999,
     mainThread: { heartbeatTicks: 10, maxHeartbeatDelayMs: 7.25 },
   };
   await writeFile(join(windows, 'node-1.json'), JSON.stringify(workerSample));
