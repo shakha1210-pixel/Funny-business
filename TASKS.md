@@ -13,8 +13,8 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 1. [x] Consolidate project documentation into this task ledger, root README, and root architecture handbook.
 2. [x] Generate and merge pnpm lockfile (PR #1); next enable frozen lockfile installs and CI caching.
 3. [x] Generate and merge Cargo.lock + exact Rust toolchain pin (PR #2).
-4. [ ] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary.md artifacts; do not choose a binding from unmeasured assumptions.
-5. [ ] Select persistence host/binding only after benchmark, package, license, crash-recovery, and cross-platform evidence.
+4. [x] Dispatch SQLite benchmark workflow on Ubuntu, Windows, and macOS; inspect all JSON and summary.md artifacts (run 45915331479; all 3 OS jobs and artifacts succeeded).
+5. [ ] Investigate cross-platform SQLite FULL-sync latency and validate on representative devices; then select persistence host/binding only after package, license, crash-recovery, and cross-platform evidence.
 6. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
 8. [ ] Add assistant/tool message persistence and API/feed/UI projections.
@@ -56,7 +56,7 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 - [x] Node sync/worker and Rust benchmark harnesses plus dependency-free summarizer and CI tests.
 - [x] pnpm-lock.yaml generated with pnpm 10.0.0 and merged through PR #1.
 - [x] Rust Cargo.lock and exact rust-toolchain.toml (1.100.0) merged through PR #2.
-- [ ] Manual SQLite benchmark workflow is configured for Ubuntu/Windows/macOS; run and inspect artifacts before any binding decision.
+- [x] Manual SQLite benchmark workflow completed on Ubuntu/Windows/macOS (run 45915331479); 15 JSON results per OS plus summary.md inspected. Results are provisional hosted-runner evidence, not a binding decision.
 
 ## Verification ledger
 
@@ -77,11 +77,23 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 
 Historical failed runs were corrected by later commits; do not count superseded failures as current failures. No local checkout/build/test has been run in this environment. Only observed GitHub Actions results are claimed.
 
+## Benchmark evidence (run 45915331479)
+
+All matrix jobs succeeded; each OS artifact contained 15 JSON result files (5 repetitions × 3 modes) and `summary.md`. Median ops/s (min–max):
+
+| OS | Node sync | Node worker | Rust rusqlite |
+|---|---:|---:|---:|
+| Linux | 4,690.6 (4,404.6–5,018.5) | 4,640.4 (3,908.2–4,793.4) | 5,833.7 (5,594.6–6,078.9) |
+| macOS | 4,100.9 (2,710.3–5,105.3) | 3,573.6 (1,965.1–6,062.3) | 5,543.3 (4,846.2–7,393.7) |
+| Windows | 157.1 (146.2–169.9) | 161.0 (146.8–168.0) | 154.5 (69.0–155.7) |
+
+Windows throughput was roughly 150–161 ops/s across all three adapters, while Linux/macOS were roughly 3,500–5,800 ops/s. The shared Windows slowdown suggests an OS/runner/storage-sync effect rather than a Node-only issue; its cause is not yet established. Node main-thread sync blocked the event loop for a median ~31.8 s over 5,000 measured transactions; Node worker mode kept the main-thread heartbeat max delay around 15.9 ms. This supports worker ownership when using synchronous SQLite, but does not establish production performance. Hosted runner noise, OS/filesystem differences, and the narrow microbenchmark limit conclusions. Keep the binding unselected pending methodology review and representative local-device tests.
+
 ## Current limitations / blockers
 
 - No production Agent Runtime, assistant messages, tool messages, model provider, or resumable run execution.
 - User messages and Session metadata are separate JSON stores; cross-store atomicity is not guaranteed.
-- SQLite remains a spike/evaluation candidate, not production persistence.
+- SQLite remains a spike/evaluation candidate, not production persistence; benchmark run 45915331479 is preliminary evidence only.
 - pnpm-lock.yaml and Cargo.lock are merged, but the main Node CI install has not yet been switched to frozen-lockfile mode.
 - No real OS sandbox, process execution broker, permission approval UI, or credential vault.
 - Filesystem adapter is read-only and retains intermediate-component TOCTOU risk.
