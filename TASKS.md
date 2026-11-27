@@ -17,10 +17,10 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 5. [ ] Investigate cross-platform SQLite FULL-sync latency and validate on representative devices; then select persistence host/binding only after package, license, crash-recovery, and cross-platform evidence.
 6. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 7. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
-8. [ ] Add assistant/tool message persistence and API/feed/UI projections.
-9. [ ] Add real local model adapter only after host/provider boundary and safety contracts pass.
-10. [ ] Add hosted provider through host-owned credentials and explicit network policy.
-11. [ ] Only then expand tool execution, permission approvals, and OS sandbox integration.
+9. [ ] Add assistant/tool message persistence and API/feed/UI projections.
+10. [ ] Add real local model adapter only after host/provider boundary and safety contracts pass.
+11. [ ] Add hosted provider through host-owned credentials and explicit network policy.
+12. [ ] Only then expand tool execution, permission approvals, and OS sandbox integration.
 
 ## Completed foundations
 
