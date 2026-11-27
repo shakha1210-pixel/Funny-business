@@ -139,7 +139,7 @@ An isolated Node 22 node:sqlite vertical slice currently verifies:
 - recovery from a lost COMMIT acknowledgement by reopening and querying the operation receipt;
 - two-process writer contention, WAL reader/writer behavior, checkpoint behavior, and VACUUM INTO backup/restore smoke tests.
 
-This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses and a manual Ubuntu/Windows/macOS GitHub Actions matrix workflow exist. The workflow runs repeated Node sync, Node worker-thread, and Rust transactions with WAL + synchronous=FULL, then emits per-OS JSON results and a summary. No benchmark run has yet been accepted; inspect all artifacts and compare only within the same OS/workload before deciding. SQLite remains an evaluation candidate; JSON remains the active production prototype store.
+This is contract-level test evidence, not proof of power-loss durability, production performance, or selected runtime binding. The Node and Rust benchmark harnesses and a manual Ubuntu/Windows/macOS GitHub Actions matrix workflow exist. The workflow runs repeated Node sync, Node worker-thread, and Rust transactions with WAL + synchronous=FULL, then emits per-OS JSON results and a summary. Benchmark run 45915331479 completed successfully on Ubuntu, Windows, and macOS. Each OS produced 15 JSON files (five repetitions each for Node sync, Node worker, and Rust rusqlite) plus summary.md. Median throughput (ops/s) was Linux: 4,690.6 / 4,640.4 / 5,833.7; macOS: 4,100.9 / 3,573.6 / 5,543.3; Windows: 157.1 / 161.0 / 154.5 (Node sync / Node worker / Rust). Windows Node sync reported a median ~31.8 s synchronous event-loop stall for 5,000 measured transactions, versus ~1.1 s Linux and ~1.2 s macOS. This is a platform/runtime outlier to investigate, not sufficient evidence to rank adapters across OSes. Hosted runners and the narrow workload constrain conclusions; run representative local-device and methodology checks before choosing a binding. SQLite remains an evaluation candidate; JSON remains the active production prototype store.
 
 ### Normative transaction coordinator contract
 1. Validate: normalize input and check domain invariants.
@@ -158,7 +158,7 @@ Commit outcomes must distinguish not committed, committed, and unknown. For an u
 - better-sqlite3: mature synchronous Node-API option with prebuild coverage; validate platform/package provenance and fallback compilation.
 - Rust rusqlite/SQLx under Tauri: narrow native host adapter candidate; avoid duplicating domain rules or exposing SQL to renderer.
 - Tauri SQL plugin guest API is not an acceptable direct renderer database boundary.
-No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Dispatch the benchmark matrix, inspect JSON and summary artifacts, then record the evidence-based decision in a new ADR.
+No binding has been selected. pnpm-lock.yaml (pnpm 10.0.0) and Rust Cargo.lock plus rust-toolchain.toml (1.100.0) are merged. Benchmark run 45915331479 is complete; inspect its cross-platform outlier and validate on representative devices before recording an evidence-based decision in a new ADR.
 
 ## 7. Plugin and extension architecture
 
