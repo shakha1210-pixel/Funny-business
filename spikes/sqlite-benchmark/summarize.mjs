@@ -71,8 +71,8 @@ const rows = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 console.log(`SQLite benchmark summary — ${files.length} JSON files`);
 console.log(`Expected repetitions per OS/sync/adapter/mode group: ${expectedRepeats}`);
 console.log('');
-console.log('| OS | Sync | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Main/UI thread probe |');
-console.log('|---|---|---|---:|---:|---:|---:|---:|---|');
+console.log('| OS | Sync | Adapter / mode | Runs | Median ops/s (min–max) | Median p95 ms | Median p99 ms | Median open ms | Pre-scheduled timer delay | Worker heartbeat max delay |');
+console.log('|---|---|---|---:|---:|---:|---:|---:|---:|---|');
 
 for (const [key, samples] of rows) {
   const [platform, synchronous, adapter, mode] = key.split('/');
@@ -80,19 +80,21 @@ for (const [key, samples] of rows) {
   const p95 = samples.map((sample) => sample.transactionMs.p95);
   const p99 = samples.map((sample) => sample.transactionMs.p99);
   const open = samples.map((sample) => sample.openMs).filter(Number.isFinite);
-  const probes = samples.flatMap((sample) => {
-    if (mode === 'main-thread-sync' && Number.isFinite(sample.synchronousEventLoopStallMs)) return [sample.synchronousEventLoopStallMs];
-    if (mode === 'worker-thread' && Number.isFinite(sample.mainThread?.maxHeartbeatDelayMs)) return [sample.mainThread.maxHeartbeatDelayMs];
-    return [];
-  });
+  const timerDelays = samples
+    .filter((sample) => mode === 'main-thread-sync' && Number.isFinite(sample.preScheduledTimerDelayMs))
+    .map((sample) => sample.preScheduledTimerDelayMs);
+  const heartbeatDelays = samples
+    .filter((sample) => mode === 'worker-thread' && Number.isFinite(sample.mainThread?.maxHeartbeatDelayMs))
+    .map((sample) => sample.mainThread.maxHeartbeatDelayMs);
+  const timerDelayLabel = timerDelays.length ? `${median(timerDelays).toFixed(2)} ms median (n=${timerDelays.length})` : 'n/a';
+  const heartbeatLabel = heartbeatDelays.length ? `${median(heartbeatDelays).toFixed(2)} ms median (n=${heartbeatDelays.length})` : 'n/a';
   const throughputRange = range(throughput);
-  const responsiveness = probes.length ? `${median(probes).toFixed(2)} ms median (n=${probes.length})` : 'n/a';
   const runLabel = samples.length === expectedRepeats ? String(samples.length) : `**${samples.length}** (expected ${expectedRepeats})`;
-  console.log(`| ${platform} | ${synchronous} | ${adapter} / ${mode} | ${runLabel} | ${median(throughput).toFixed(1)} (${throughputRange[0].toFixed(1)}–${throughputRange[1].toFixed(1)}) | ${median(p95).toFixed(4)} | ${median(p99).toFixed(4)} | ${open.length ? median(open).toFixed(3) : 'n/a'} | ${responsiveness} |`);
+  console.log(`| ${platform} | ${synchronous} | ${adapter} / ${mode} | ${runLabel} | ${median(throughput).toFixed(1)} (${throughputRange[0].toFixed(1)}–${throughputRange[1].toFixed(1)}) | ${median(p95).toFixed(4)} | ${median(p99).toFixed(4)} | ${open.length ? median(open).toFixed(3) : 'n/a'} |  ${timerDelayLabel} | ${heartbeatLabel} |`);
 }
 
 console.log('');
-console.log('Interpretation: compare adapters only within the same OS, sync mode, and identical workload/settings. Hosted CI runners are noisy; report medians and spread, do not treat this microbenchmark as a complete desktop-runtime decision.');
+console.log('Interpretation: the pre-scheduled zero-delay timer delay measures how long a timer callback waits while the main thread runs the synchronous workload; it is not UI-frame latency. Worker heartbeat max delay is a separate recurring 10 ms timer measurement and is not directly comparable. Compare adapters only within the same OS, sync mode, and identical workload/settings. Hosted CI runners are noisy; report medians and spread, do not treat this microbenchmark as a complete desktop-runtime decision.');
 const incomplete = rows.filter(([, samples]) => samples.length !== expectedRepeats);
 if (incomplete.length) {
   console.error(`Warning: ${incomplete.length} OS/sync/adapter/mode group(s) do not have the expected repetition count.`);

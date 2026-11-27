@@ -15,6 +15,7 @@ const sample = (platform, adapter, executionMode, opsPerSecond, p95, p99, synchr
   synchronous,
   opsPerSecond,
   totalMs: 1000,
+  preScheduledTimerDelayMs: 12.5,
   openMs: 2,
   transactionMs: { p95, p99 },
 });
@@ -32,7 +33,7 @@ try {
   await writeFile(join(linux, 'rust-2.json'), JSON.stringify(sample('linux', 'rusqlite', undefined, 170, 4, 6)));
   const workerSample = {
     ...sample('win32', 'node:sqlite DatabaseSync', 'worker-thread', 300, 1, 2),
-    synchronousEventLoopStallMs: 999,
+    preScheduledTimerDelayMs: 999,
     mainThread: { heartbeatTicks: 10, maxHeartbeatDelayMs: 7.25 },
   };
   await writeFile(join(windows, 'node-1.json'), JSON.stringify(workerSample));
@@ -45,7 +46,9 @@ try {
   assert.match(complete.stdout, /windows \| FULL \| node:sqlite DatabaseSync \/ worker-thread \| 2 \|/);
   assert.match(complete.stdout, /linux \| FULL \| rusqlite \/ rust-native \| 2 \|/);
   assert.match(complete.stdout, /160\.0 \(150\.0–170\.0\)/);
+  assert.match(complete.stdout, /12\.50 ms median \(n=2\)/);
   assert.match(complete.stdout, /7\.25 ms median \(n=2\)/);
+  assert.match(complete.stdout, /Pre-scheduled timer delay \| Worker heartbeat max delay/);
   assert.doesNotMatch(complete.stdout, /999\.00 ms/);
 
   const incomplete = spawnSync(process.execPath, [script, directory, '--expected-repeats=5'], { encoding: 'utf8' });
