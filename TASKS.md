@@ -4,7 +4,7 @@ This is the single living task ledger. Keep it adjacent to the root README. Upda
 
 ## Current checkpoint
 
-**Active milestone:** Cross-platform SQLite benchmark and persistence decision.
+**Active milestone:** SQLite benchmark v2 methodology, representative workload validation, and persistence decision.
 
 The Workspace, Session, browser host, read-only filesystem, and user-message capture vertical slices exist. A real model provider, assistant messages, tool execution, and resumable agent runs do not exist yet.
 
@@ -16,13 +16,24 @@ The Workspace, Session, browser host, read-only filesystem, and user-message cap
 4. [x] Run the initial SQLite FULL-sync benchmark matrix on Ubuntu, Windows, and macOS (run 45915331479); preserve its results as provisional historical evidence.
 5. [x] Fix benchmark summarization to group by OS + synchronous mode + adapter/mode (PR #6); add FULL/NORMAL regression coverage.
 6. [x] Rerun the corrected FULL/NORMAL benchmark on all three OSes and inspect all 90 JSON samples plus per-OS summary.md artifacts (runs 45971533752 and 46024330392).
-7. [ ] Review the benchmark methodology and validate FULL/NORMAL behavior on representative local devices; then decide whether to select a persistence host/binding, only after package, license, crash-recovery, and cross-platform evidence.
+7. [ ] Define and execute SQLite benchmark v2 before any persistence decision. The v2 methodology/acceptance criteria are drafted in ARCHITECTURE.md on branch `docs/sqlite-benchmark-v2-criteria`; after this documentation review, implement the workload harness, run CI matrix, validate on representative local devices, and only then evaluate package, license, crash-recovery, and cross-platform evidence.
 8. [x] Specify AgentRun/message/event schema, provider contract, state machine, and restart-interruption policy in the pure domain contract.
 9. [ ] Implement host-owned run coordinator with deterministic test provider, cancellation, durable events, and restart reconciliation (blocked on a production transaction boundary).
 10. [ ] Add assistant/tool message persistence and API/feed/UI projections.
 11. [ ] Add real local model adapter only after host/provider boundary and safety contracts pass.
 12. [ ] Add hosted provider through host-owned credentials and explicit network policy.
 13. [ ] Only then expand tool execution, permission approvals, and OS sandbox integration.
+
+
+## Current benchmark v2 checkpoint
+
+- [x] Audited the existing harness scope: it is a sequential `session.create` microbenchmark, not a representative application workload.
+- [x] Drafted benchmark v2 methodology and acceptance gates in ARCHITECTURE.md: mixed Workspace/Session/message/run-event operations, one writer plus four readers, WAL/checkpoint measurements, process-crash/ambiguous-commit recovery, raw latency/resource metrics, CI-versus-local separation, and semantic-parity requirements.
+- [ ] Review and merge the methodology documentation before implementing the v2 harness.
+- [ ] Implement and test the v2 harness without changing production persistence. Keep JSON as the active production prototype store and SQLite as an evaluation candidate.
+- [ ] Run Ubuntu/Windows/macOS CI repetitions, then repeat on representative physical devices for all target OSes. Do not treat hosted runners as substitutes for local hardware.
+- [ ] Publish raw artifacts and grouped summaries; resolve every correctness/recovery failure before interpreting performance.
+- [ ] Record a separate architecture decision only after all acceptance gates, package provenance, license, backup/restore, migration/rollback, and durability review pass.
 
 ## Completed foundations
 
