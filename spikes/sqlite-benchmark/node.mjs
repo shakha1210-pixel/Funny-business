@@ -103,7 +103,7 @@ async function runBenchmark({ iterations, warmup, journal, synchronous, executio
       warmup,
       openMs: Number(openMs.toFixed(3)),
       totalMs: Number(benchmarkMs.toFixed(3)),
-      synchronousEventLoopStallMs: Number(eventLoopStallMs.toFixed(3)),
+      preScheduledTimerDelayMs: Number(eventLoopStallMs.toFixed(3)),
       opsPerSecond: Number((iterations / (benchmarkMs / 1000)).toFixed(1)),
       transactionMs: {
         p50: Number(percentile(samples, 0.50).toFixed(4)),
