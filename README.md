@@ -6,7 +6,7 @@ Funny-business combines project Workspaces, durable Sessions, an agent runtime, 
 
 ## Current status
 
-Early but working prototype: plugin core, Workspace and Session metadata, loopback development host, connected browser UI, read-only Workspace file access, and durable user-message capture. Agent execution, assistant/tool messages, real model providers, native desktop shell, and OS-enforced sandboxing are not implemented yet.
+Early but working prototype: plugin core, Workspace and Session metadata, loopback development host, connected browser UI, read-only Workspace file access, and durable user-message capture. Agent execution, assistant/tool messages, real model providers, native desktop shell, and OS-enforced sandboxing are not implemented yet. pnpm and Rust lockfiles are committed; cross-platform SQLite benchmarking is the active persistence evaluation milestone.
 
 ## Principles
 
