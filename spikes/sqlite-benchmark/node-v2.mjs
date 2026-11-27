@@ -8,7 +8,6 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
 import { createMixedOperations, createWorkloadDescriptor } from "./workload-v2.mjs";
 
@@ -247,6 +246,8 @@ async function main() {
     const execute = createExecutor(db);
 
     for (let i = 0; i < warmup; i += 1) execute(operations[i]);
+    const receiptsBefore = db.prepare("SELECT count(*) AS count FROM operation_receipts").get().count;
+    const changesBefore = db.prepare("SELECT count(*) AS count FROM change_log").get().count;
     const dbBytesBefore = await fileBytes(filename);
     const walBytesBefore = await fileBytes(walFilename);
     const memoryBefore = process.memoryUsage().rss;
@@ -283,8 +284,10 @@ async function main() {
     if (integrity !== "ok" || foreignKeyViolations.length !== 0) {
       throw new Error("SQLite integrity validation failed");
     }
-    if (receipts !== changeRows || counts.write !== receipts) {
-      throw new Error(`receipt/change-log mismatch: writes=${counts.write}, receipts=${receipts}, changes=${changeRows}`);
+    const measuredReceipts = receipts - receiptsBefore;
+    const measuredChanges = changeRows - changesBefore;
+    if (receipts !== changeRows || counts.write !== measuredReceipts || measuredReceipts !== measuredChanges) {
+      throw new Error(`receipt/change-log mismatch: measuredWrites=${counts.write}, measuredReceipts=${measuredReceipts}, measuredChanges=${measuredChanges}`);
     }
 
     const result = {
@@ -328,7 +331,7 @@ async function main() {
         cpuSystemMs: Number((cpu.system / 1000).toFixed(3)),
       },
       integrity: { result: integrity, foreignKeyViolations: foreignKeyViolations.length },
-      verified: { operationReceipts: receipts, changeLogRows: changeRows },
+      verified: { operationReceipts: receipts, changeLogRows: changeRows, measuredReceipts, measuredChangeLogRows: measuredChanges },
     };
     console.log(JSON.stringify(result));
   } finally {
